@@ -143,6 +143,7 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "home"
+LOGOUT_REDIRECT_URL = "login"
 
 # Evita deslogar toda hora (o problema do sistema atual)
 SESSION_COOKIE_AGE = 60 * 60 * 12      # sessão dura 12h

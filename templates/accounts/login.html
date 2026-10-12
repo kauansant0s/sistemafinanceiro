@@ -1,1 +1,56 @@
-<form method="post">{% csrf_token %}{{ form.as_p }}<button>Entrar</button></form>
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Financeiro CTSul — Entrar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Liter&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          teal: { DEFAULT: '#58B6A2', dark: '#4A9F8D' },
+          pill: '#9FDBCE',
+          ink: '#1E1E1E',
+        },
+        fontFamily: { sans: ['Liter', 'sans-serif'] },
+      }
+    }
+  }
+</script>
+<style>
+  body { font-family: 'Liter', sans-serif; }
+  .login-field::placeholder { color: #1E1E1E; opacity: 1; }
+</style>
+</head>
+<body class="min-h-screen bg-[#0B0D0D] flex items-center justify-center text-ink">
+
+  <div class="flex flex-col items-center px-4">
+    <img class="h-20 sm:h-24 w-auto mb-8" src="{% static 'img/logo.png' %}" alt="Grupo CT Sul — Diagnóstico por Imagem">
+
+    <form method="post" class="bg-teal rounded-2xl shadow-xl px-8 py-8 sm:px-10 sm:py-10 w-[88vw] max-w-sm sm:max-w-md">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ next }}">
+
+      {% if form.errors %}
+        <p class="bg-white/80 rounded-xl px-4 py-2 mb-4 text-sm text-[#8A1C1C]">Usuário ou senha incorretos.</p>
+      {% endif %}
+
+      <input type="text" name="username" placeholder="Usuário:" autocomplete="username" autofocus required
+             class="login-field w-full rounded-xl bg-white/25 px-4 py-3 outline-none text-sm sm:text-base mb-4">
+      <input type="password" name="password" placeholder="Senha:" autocomplete="current-password" required
+             class="login-field w-full rounded-xl bg-white/25 px-4 py-3 outline-none text-sm sm:text-base mb-6">
+
+      <div class="flex flex-col items-center gap-3">
+        <button type="submit" class="bg-pill hover:brightness-95 transition-[filter] rounded-xl px-10 py-2.5 text-sm sm:text-base">Entrar</button>
+        <a href="#" class="text-xs sm:text-sm underline text-ink">Esqueci a senha</a>
+      </div>
+    </form>
+  </div>
+</body>
+</html>

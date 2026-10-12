@@ -2,4 +2,4 @@ from django.apps import AppConfig
 
 
 class ConveniosConfig(AppConfig):
-    name = 'convenios'
+    name = 'apps.convenios'

@@ -1,7 +1,7 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-{% load static %}
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>{% block title %}Financeiro CTSul{% endblock %}</title>
@@ -32,7 +32,6 @@
   html { scroll-padding-top: env(safe-area-inset-top, 0px); }
   body { font-family: 'Liter', sans-serif; }
 
-  /* hamburger <-> X animation */
   .hamburger-line { transform-origin: center; transition: transform .25s ease, opacity .2s ease; }
   #menuBtn[aria-expanded="true"] .line-top { transform: translateY(9px) rotate(45deg); }
   #menuBtn[aria-expanded="true"] .line-mid { opacity: 0; }
@@ -44,42 +43,8 @@
 
   .chevron { transition: transform .2s ease; }
   .chevron.rotated { transform: rotate(180deg); }
-
-  #calBody td { height: 1px; } /* truque clássico: permite o filho usar height:100% acompanhando a altura real da linha */
-
-  .cal-day { position: relative; height: 1px; }
-  .cal-day-inner {
-    position: relative;
-    height: 100%;
-    box-sizing: border-box;
-    transition: transform .15s ease, box-shadow .15s ease, border-radius .15s ease, background-color .15s ease;
-  }
-  .cal-day:hover .cal-day-inner,
-  .cal-day.cal-day-focused .cal-day-inner {
-    transform: scale(1.05);
-    box-shadow: 0 8px 22px rgba(0,0,0,0.32);
-    border-radius: 10px;
-    background-color: #EDEDED;
-    z-index: 5;
-  }
-  .cal-today .cal-day-inner { background-color: rgba(159,219,206,0.6); }
-  .cal-today.cal-day:hover .cal-day-inner,
-  .cal-today.cal-day.cal-day-focused .cal-day-inner {
-    background-color: rgba(159,219,206,0.85);
-  }
-
-  .login-field::placeholder { color: #1E1E1E; opacity: 1; }
-
-  @media print {
-    header, #sidebar, .breadcrumb-bar, #loginOverlay { display: none !important; }
-    body { background: #fff !important; }
-    main { padding: 0 !important; }
-    #calToggleDone, #calPrint, #calPrev, #calNext, #calToday { display: none !important; }
-    #calGotoPopup, #calTodayTooltip { display: none !important; }
-    .cal-task-input { display: none !important; }
-    .cal-day-inner { box-shadow: none !important; transform: none !important; background: transparent !important; }
-  }
 </style>
+{% block extra_head %}{% endblock %}
 </head>
 <body class="bg-[#F4F7F6] text-ink min-h-full">
 
@@ -94,19 +59,22 @@
       </svg>
     </button>
 
-    <img id="headerLogo" class="h-9 sm:h-[46px] w-auto shrink-0" style="opacity:0; transition: opacity .25s ease;" src="{% static 'img/logo.png' %}" alt="Grupo CT Sul — Diagnóstico por Imagem">
+    <img id="headerLogo" class="h-9 sm:h-[46px] w-auto shrink-0" src="{% static 'img/logo.png' %}" alt="Grupo CT Sul — Diagnóstico por Imagem">
 
     <nav class="flex items-center gap-4 sm:gap-9 ml-auto mr-1 sm:mr-2">
       <a href="{% url 'home' %}" class="text-ink no-underline text-xs sm:text-[15px] tracking-wide whitespace-nowrap">Página inicial</a>
-      <a href="lancamentos.html" class="text-ink no-underline text-xs sm:text-[15px] tracking-wide whitespace-nowrap">Lançamentos</a>
-      <a href="novo_lancamento.html" class="hidden sm:inline text-ink no-underline text-[15px] tracking-wide whitespace-nowrap">Novo lançamento</a>
+      <a href="#" class="text-ink no-underline text-xs sm:text-[15px] tracking-wide whitespace-nowrap">Lançamentos</a>
+      <a href="#" class="hidden sm:inline text-ink no-underline text-[15px] tracking-wide whitespace-nowrap">Novo lançamento</a>
     </nav>
 
-    <button class="flex items-center justify-center p-1.5 rounded-lg shrink-0" aria-label="Sair">
-      <svg class="w-5 h-5 sm:w-[24px] sm:h-[24px]" viewBox="0 0 50 50" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M18.75 43.75H10.4167C9.3116 43.75 8.25179 43.311 7.47039 42.5296C6.68899 41.7482 6.25 40.6884 6.25 39.5833V10.4167C6.25 9.3116 6.68899 8.25179 7.47039 7.47039C8.25179 6.68899 9.3116 6.25 10.4167 6.25H18.75M33.3333 14.5833L43.75 25L33.3333 35.4167M43.75 25H18.75" stroke="#1E1E1E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-    </button>
+    <form method="post" action="{% url 'logout' %}" class="shrink-0">
+      {% csrf_token %}
+      <button type="submit" class="flex items-center justify-center p-1.5 rounded-lg" aria-label="Sair">
+        <svg class="w-5 h-5 sm:w-[24px] sm:h-[24px]" viewBox="0 0 50 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M18.75 43.75H10.4167C9.3116 43.75 8.25179 43.311 7.47039 42.5296C6.68899 41.7482 6.25 40.6884 6.25 39.5833V10.4167C6.25 9.3116 6.68899 8.25179 7.47039 7.47039C8.25179 6.68899 9.3116 6.25 10.4167 6.25H18.75M33.3333 14.5833L43.75 25L33.3333 35.4167M43.75 25H18.75" stroke="#1E1E1E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </form>
 
   </div>
 </header>
@@ -126,121 +94,29 @@
 
     <div id="lancamentosSub" class="overflow-hidden max-h-0 opacity-0 transition-all duration-200 ease-in-out">
       <div class="flex flex-col gap-2.5 pl-8 sm:pl-10 pt-2.5">
-        <a href="lancamentos.html" class="bg-pill rounded-2xl px-5 py-3.5 text-[15px] sm:text-base text-ink no-underline">Lançamentos</a>
-        <a href="novo_lancamento.html" class="bg-pill rounded-2xl px-5 py-3.5 text-[15px] sm:text-base text-ink no-underline">Novo Lançamento</a>
+        <a href="#" class="bg-pill rounded-2xl px-5 py-3.5 text-[15px] sm:text-base text-ink no-underline">Lançamentos</a>
+        <a href="#" class="bg-pill rounded-2xl px-5 py-3.5 text-[15px] sm:text-base text-ink no-underline">Novo Lançamento</a>
       </div>
     </div>
 
-    <a href="importacoes.html" class="bg-pill rounded-2xl px-5 py-3.5 text-[15px] sm:text-base text-ink no-underline">Importar</a>
+    <a href="#" class="bg-pill rounded-2xl px-5 py-3.5 text-[15px] sm:text-base text-ink no-underline">Importar</a>
 
-    <a href="relatorios.html" class="bg-pill rounded-2xl px-5 py-3.5 text-[15px] sm:text-base text-ink no-underline">Relatórios</a>
+    <a href="#" class="bg-pill rounded-2xl px-5 py-3.5 text-[15px] sm:text-base text-ink no-underline">Relatórios</a>
 
-    <a href="perfil.html" class="bg-pill rounded-2xl px-5 py-3.5 text-[15px] sm:text-base text-ink no-underline">Meu perfil (Kauan)</a>
+    <a href="#" class="bg-pill rounded-2xl px-5 py-3.5 text-[15px] sm:text-base text-ink no-underline">Meu perfil ({{ user.first_name|default:user.username }})</a>
 
   </div>
 </div>
 
 <div class="breadcrumb-bar bg-white border-b border-[#E3EAE8]">
   <div class="max-w-[1440px] mx-auto px-4 sm:px-8 pt-6 sm:pt-7 pb-4 sm:pb-5 text-right">
-    <h1 class="m-0 text-xl sm:text-[28px] font-normal tracking-wide">Página inicial</h1>
+    <h1 class="m-0 text-xl sm:text-[28px] font-normal tracking-wide">{% block page_title %}{% endblock %}</h1>
   </div>
 </div>
 
-<main class="max-w-[1440px] mx-auto px-4 sm:px-8 pt-10 sm:pt-14 pb-16 sm:pb-20 flex justify-center">
-  <div class="w-full max-w-2xl">
-    <h2 class="text-center text-2xl sm:text-3xl tracking-wide mb-4 sm:mb-6">Calendário</h2>
-
-    <div class="relative flex items-center justify-center gap-6 sm:gap-10 mb-4 sm:mb-6">
-      <button id="calPrev" type="button" aria-label="Mês anterior" class="text-xl sm:text-2xl px-2 select-none">&lt;</button>
-      <span id="calLabel" class="text-lg sm:text-2xl tracking-wide whitespace-nowrap text-center w-[16ch] sm:w-[15ch] shrink-0"></span>
-      <button id="calNext" type="button" aria-label="Próximo mês" class="text-xl sm:text-2xl px-2 select-none">&gt;</button>
-      
-      <button id="calToday" type="button" aria-label="Ir para mês/ano"
-        class="absolute left-0 top-1/2 -translate-y-1/2 flex items-center justify-center">
-        <svg width="28" height="28" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M32 4V12M16 4V12M6 20H42M10 8H38C40.2091 8 42 9.79086 42 12V40C42 42.2091 40.2091 44 38 44H10C7.79086 44 6 42.2091 6 40V12C6 9.79086 7.79086 8 10 8Z"
-                stroke="#1E1E1E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <span id="calTodayTooltip"
-          class="pointer-events-none absolute left-0 top-full mt-2 whitespace-normal w-64 bg-[#1E1E1E] text-white text-[11px] sm:text-xs px-2.5 py-1.5 rounded-md opacity-0 transition-opacity duration-150 z-40 leading-snug">
-          Um clique: digitar mês/ano desejado.<br>Dois cliques: ir para o mês atual.
-        </span>
-      </button>
-
-      <!-- Popup para digitar mês/ano -->
-      <div id="calGotoPopup"
-           class="hidden absolute left-0 top-full mt-2 z-30 bg-white border border-[#E3EAE8] rounded-xl shadow-lg p-3 w-56">
-        <label class="block text-[11px] uppercase tracking-wide text-[#6B6B6B] mb-1">Mês</label>
-        <select id="calGotoMes"
-                class="w-full mb-2 px-2 py-1.5 text-sm rounded-lg border border-[#E3EAE8] bg-white outline-none">
-          <!-- preenchido via JS -->
-        </select>
-
-        <label class="block text-[11px] uppercase tracking-wide text-[#6B6B6B] mb-1">Ano</label>
-        <input id="calGotoAno" type="number" inputmode="numeric"
-               class="w-full mb-3 px-2 py-1.5 text-sm rounded-lg border border-[#E3EAE8] bg-white outline-none" />
-
-        <div class="flex items-center justify-end gap-2">
-          <button id="calGotoCancelar" type="button"
-                  class="text-xs px-3 py-1.5 rounded-lg text-[#6B6B6B] hover:bg-[#F4F7F6]">Cancelar</button>
-          <button id="calGotoIr" type="button"
-                  class="text-xs px-3 py-1.5 rounded-lg bg-teal text-white hover:brightness-95">Ir</button>
-        </div>
-      </div>
-
-      <button id="calToggleDone" type="button" aria-label="Mostrar/ocultar tarefas concluídas" class="absolute right-9 sm:right-11 top-1/2 -translate-y-1/2 flex items-center justify-center">
-        <svg id="eyeOpen" width="28" height="28" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M1.66675 20C1.66675 20 8.33342 6.66666 20.0001 6.66666C31.6667 6.66666 38.3334 20 38.3334 20C38.3334 20 31.6667 33.3333 20.0001 33.3333C8.33342 33.3333 1.66675 20 1.66675 20Z" stroke="#1E1E1E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M20.0001 25C22.7615 25 25.0001 22.7614 25.0001 20C25.0001 17.2386 22.7615 15 20.0001 15C17.2387 15 15.0001 17.2386 15.0001 20C15.0001 22.7614 17.2387 25 20.0001 25Z" stroke="#1E1E1E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <svg id="eyeClosed" class="hidden" width="28" height="28" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M35.88 35.88C32.4612 38.486 28.2982 39.9297 24 40C10 40 2 24 2 24C4.48778 19.3638 7.93827 15.3132 12.12 12.12M19.8 8.48C21.1767 8.15776 22.5861 7.99668 24 8C38 8 46 24 46 24C44.786 26.2712 43.3381 28.4095 41.68 30.38M28.24 28.24C27.6907 28.8295 27.0283 29.3023 26.2923 29.6302C25.5563 29.9582 24.7618 30.1345 23.9562 30.1487C23.1506 30.1629 22.3503 30.0148 21.6032 29.713C20.8561 29.4112 20.1774 28.9621 19.6077 28.3923C19.0379 27.8226 18.5888 27.1439 18.287 26.3968C17.9852 25.6497 17.8371 24.8494 17.8513 24.0438C17.8655 23.2382 18.0418 22.4437 18.3698 21.7077C18.6977 20.9717 19.1705 20.3093 19.76 19.76M2 2L46 46" stroke="#1E1E1E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <span id="eyeTooltip" class="pointer-events-none absolute right-0 top-full mt-2 whitespace-nowrap bg-[#1E1E1E] text-white text-[11px] sm:text-xs px-2.5 py-1.5 rounded-md opacity-0 transition-opacity duration-150"></span>
-      </button>
-
-      <button id="calPrint" type="button" aria-label="Imprimir calendário" class="absolute right-0 top-1/2 -translate-y-1/2 flex items-center justify-center">
-        <svg width="24" height="24" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M9.99992 15V3.33331H29.9999V15M9.99992 30H6.66659C5.78253 30 4.93468 29.6488 4.30956 29.0237C3.68444 28.3985 3.33325 27.5507 3.33325 26.6666V18.3333C3.33325 17.4493 3.68444 16.6014 4.30956 15.9763C4.93468 15.3512 5.78253 15 6.66659 15H33.3333C34.2173 15 35.0652 15.3512 35.6903 15.9763C36.3154 16.6014 36.6666 17.4493 36.6666 18.3333V26.6666C36.6666 27.5507 36.3154 28.3985 35.6903 29.0237C35.0652 29.6488 34.2173 30 33.3333 30H29.9999M9.99992 23.3333H29.9999V36.6666H9.99992V23.3333Z" stroke="#1E1E1E" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <span id="printTooltip" class="pointer-events-none absolute right-0 top-full mt-2 whitespace-nowrap bg-[#1E1E1E] text-white text-[11px] sm:text-xs px-2.5 py-1.5 rounded-md opacity-0 transition-opacity duration-150">Imprimir calendário</span>
-      </button>
-    </div>
-
-    <div class="rounded-2xl shadow-md bg-white border border-[#E3EAE8]">
-      <table class="w-full border-collapse table-fixed">
-        <thead>
-          <tr class="bg-white">
-            <th class="w-1/5 text-[11px] sm:text-xs font-normal tracking-wide text-[#6B6B6B] uppercase py-2.5 border-b border-[#E3EAE8]">Segunda</th>
-            <th class="w-1/5 text-[11px] sm:text-xs font-normal tracking-wide text-[#6B6B6B] uppercase py-2.5 border-b border-[#E3EAE8]">Terça</th>
-            <th class="w-1/5 text-[11px] sm:text-xs font-normal tracking-wide text-[#6B6B6B] uppercase py-2.5 border-b border-[#E3EAE8]">Quarta</th>
-            <th class="w-1/5 text-[11px] sm:text-xs font-normal tracking-wide text-[#6B6B6B] uppercase py-2.5 border-b border-[#E3EAE8]">Quinta</th>
-            <th class="w-1/5 text-[11px] sm:text-xs font-normal tracking-wide text-[#6B6B6B] uppercase py-2.5 border-b border-[#E3EAE8]">Sexta</th>
-          </tr>
-        </thead>
-        <tbody id="calBody"></tbody>
-      </table>
-    </div>
-  </div>
+<main class="max-w-[1440px] mx-auto px-4 sm:px-8 pt-10 sm:pt-14 pb-16 sm:pb-20">
+  {% block content %}{% endblock %}
 </main>
-
-<!-- Tela de login (mock, sem validação) -->
-<div id="loginOverlay" class="fixed inset-0 z-50 flex items-center justify-center">
-  <div id="loginBackdrop" class="absolute inset-0 bg-black/75" style="backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); transition: backdrop-filter .6s ease, -webkit-backdrop-filter .6s ease, background-color .6s ease;"></div>
-
-  <div class="relative flex flex-col items-center px-4">
-    <img id="loginLogo" class="h-20 sm:h-24 w-auto mb-8" style="transition: transform .6s cubic-bezier(.4,0,.2,1);" src="{% static 'img/logo.png' %}" alt="Grupo CT Sul — Diagnóstico por Imagem">
-    
-    <div id="loginCard" class="bg-teal rounded-2xl shadow-xl px-8 py-8 sm:px-10 sm:py-10 w-[88vw] max-w-sm sm:max-w-md" style="transition: opacity .4s ease;">
-      <input type="text" placeholder="Usuário:" class="login-field w-full rounded-xl bg-white/25 px-4 py-3 outline-none text-sm sm:text-base mb-4" />
-      <input type="text" placeholder="Senha:" class="login-field w-full rounded-xl bg-white/25 px-4 py-3 outline-none text-sm sm:text-base mb-6" />
-      <div class="flex flex-col items-center gap-3">
-        <button id="loginEnter" type="button" class="bg-pill hover:brightness-95 transition-[filter] rounded-xl px-10 py-2.5 text-sm sm:text-base">Entrar</button>
-        <a href="#" class="text-xs sm:text-sm underline text-ink">Esqueci a senha</a>
-      </div>
-    </div>
-  </div>
-</div>
 
 <script>
   const menuBtn = document.getElementById('menuBtn');
@@ -272,436 +148,8 @@
       lancamentosSub.classList.add('opacity-0');
     }
   });
-
-  // ---- Calendário ----
-  const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-  const today = new Date();
-  let calYear = today.getFullYear();
-  let calMonth = today.getMonth(); // 0-11
-
-    // --- Feriados ---
-  // Fixos: chave "mes-dia" (mês 1-12, sem zero à esquerda)
-  const FERIADOS_FIXOS = {
-    '1-1':   'Confraternização Universal',
-    '4-21':  'Tiradentes',
-    '5-1':   'Dia do Trabalhador',
-    '9-7':   'Independência do Brasil',
-    '9-20':  'Revolução Farroupilha',
-    '10-12': 'Nossa Senhora Aparecida',
-    '11-2':  'Finados',
-    '11-15': 'Proclamação da República',
-    '11-20': 'Dia Nacional de Zumbi e da Consciência Negra',
-    '12-25': 'Natal',
-  };
-
-  // Móveis: por ano (precisam ser cadastrados/calculados a cada ano)
-  const FERIADOS_MOVEIS = {
-    2026: {
-      '2-17': 'Carnaval',
-      '4-3':  'Paixão de Cristo',
-      '6-4':  'Corpus Christi',
-    },
-    // 2027: { ... },
-    // 2028: { ... },
-  };
-
-  function getFeriado(year, month, day) {
-    const key = `${month + 1}-${day}`;
-    const fixo = FERIADOS_FIXOS[key];
-    if (fixo) return fixo;
-    const moveisDoAno = FERIADOS_MOVEIS[year] || {};
-    return moveisDoAno[key] || null;
-  }
-
-  const calLabel = document.getElementById('calLabel');
-  const calBody = document.getElementById('calBody');
-
-  // tarefas em memória por enquanto: { "ano-mes-dia": [{text, done}, ...] }
-  const tasksStore = {};
-  function dateKey(y, m, d) { return y + '-' + m + '-' + d; }
-
-  let showCompleted = true;
-  const eyeOpen = document.getElementById('eyeOpen');
-  const eyeClosed = document.getElementById('eyeClosed');
-  const calToggleDoneBtn = document.getElementById('calToggleDone');
-  const eyeTooltip = document.getElementById('eyeTooltip');
-  let eyeHoverTimer = null;
-
-  calToggleDoneBtn.addEventListener('mouseenter', () => {
-    eyeHoverTimer = setTimeout(() => {
-      eyeTooltip.textContent = showCompleted ? 'Ocultar tarefas concluídas' : 'Mostrar tarefas concluídas';
-      eyeTooltip.classList.remove('opacity-0');
-      eyeTooltip.classList.add('opacity-100');
-    }, 200);
-  });
-  calToggleDoneBtn.addEventListener('mouseleave', () => {
-    clearTimeout(eyeHoverTimer);
-    eyeTooltip.classList.remove('opacity-100');
-    eyeTooltip.classList.add('opacity-0');
-  });
-
-  calToggleDoneBtn.addEventListener('click', () => {
-    clearTimeout(eyeHoverTimer);
-    eyeTooltip.classList.remove('opacity-100');
-    eyeTooltip.classList.add('opacity-0');
-    showCompleted = !showCompleted;
-    eyeOpen.classList.toggle('hidden', !showCompleted);
-    eyeClosed.classList.toggle('hidden', showCompleted);
-    renderCalendar(calYear, calMonth);
-  });
-
-  const calPrintBtn = document.getElementById('calPrint');
-  const printTooltip = document.getElementById('printTooltip');
-  let printHoverTimer = null;
-  calPrintBtn.addEventListener('mouseenter', () => {
-    printHoverTimer = setTimeout(() => {
-      printTooltip.classList.remove('opacity-0');
-      printTooltip.classList.add('opacity-100');
-    }, 200);
-  });
-  calPrintBtn.addEventListener('mouseleave', () => {
-    clearTimeout(printHoverTimer);
-    printTooltip.classList.remove('opacity-100');
-    printTooltip.classList.add('opacity-0');
-  });
-  calPrintBtn.addEventListener('click', () => {
-    clearTimeout(printHoverTimer);
-    printTooltip.classList.remove('opacity-100');
-    printTooltip.classList.add('opacity-0');
-    window.print();
-  });
-
-  // ordem sequencial dos dias do mês atual (só os que têm número), pra o Tab saber qual é "o próximo"
-  let dayCellsOrder = [];
-
-  function makeTaskLine(inner, key, index) {
-    const task = tasksStore[key][index];
-    const taskLine = document.createElement('div');
-    taskLine.className = 'text-[10px] sm:text-[11px] leading-snug mt-1 cursor-pointer '
-      + (task.done ? 'text-[#9A9A9A] line-through' : 'text-[#4A4A4A]');
-    taskLine.textContent = '• ' + task.text;
-
-    taskLine.addEventListener('click', () => {
-      if (taskLine._clickTimer) {
-        clearTimeout(taskLine._clickTimer);
-        taskLine._clickTimer = null;
-        return; // era o primeiro clique de um duplo clique, não conta como clique simples
-      }
-      taskLine._clickTimer = setTimeout(() => {
-        taskLine._clickTimer = null;
-        task.done = !task.done;
-        if (task.done && !showCompleted) {
-          renderCalendar(calYear, calMonth); // some da lista se as concluídas estiverem ocultas
-        } else {
-          taskLine.className = 'text-[10px] sm:text-[11px] leading-snug mt-1 cursor-pointer '
-            + (task.done ? 'text-[#9A9A9A] line-through' : 'text-[#4A4A4A]');
-        }
-      }, 220);
-    });
-
-    taskLine.addEventListener('dblclick', (e) => {
-      e.stopPropagation(); // não deixa o duplo clique "vazar" pro dia e abrir uma tarefa nova
-      if (taskLine._clickTimer) { clearTimeout(taskLine._clickTimer); taskLine._clickTimer = null; }
-      startEditingTask(inner, taskLine, key, index);
-    });
-
-    return taskLine;
-  }
-
-  function startEditingTask(inner, taskLine, key, index) {
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.className = 'cal-task-input w-full text-[10px] sm:text-[11px] bg-transparent outline-none border-b border-[#9E9E9E]';
-    input.value = tasksStore[key][index].text;
-    taskLine.replaceWith(input);
-    input.focus();
-    input.select();
-
-    let finished = false;
-    function finishEdit(save) {
-      if (finished) return;
-      finished = true;
-      if (save) {
-        const text = input.value.trim();
-        if (text) {
-          tasksStore[key][index].text = text;
-        } else {
-          tasksStore[key].splice(index, 1); // apagar deixando vazio
-        }
-      }
-      renderCalendar(calYear, calMonth);
-    }
-
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') { e.preventDefault(); finishEdit(true); }
-      else if (e.key === 'Escape') { finishEdit(false); }
-    });
-    input.addEventListener('blur', () => finishEdit(true));
-  }
-
-  function startAddingTask(inner, key) {
-    const td = inner.parentElement;
-    const existing = inner.querySelector('.cal-task-input');
-    if (existing) { existing.focus(); return; }
-
-    td.classList.add('cal-day-focused');
-
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.className = 'cal-task-input w-full text-xs bg-transparent outline-none border-b border-[#9E9E9E] mt-1';
-    inner.appendChild(input);
-    input.focus();
-
-    function commitTask() {
-      const text = input.value.trim();
-      if (text) {
-        if (!tasksStore[key]) tasksStore[key] = [];
-        tasksStore[key].push({ text, done: false });
-        const taskLine = makeTaskLine(inner, key, tasksStore[key].length - 1);
-        inner.insertBefore(taskLine, input);
-      }
-      input.value = '';
-    }
-
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        commitTask();
-        input.focus();
-      } else if (e.key === 'Escape') {
-        td.classList.remove('cal-day-focused');
-        input.remove();
-      } else if (e.key === 'Tab') {
-        e.preventDefault();
-        commitTask();
-        td.classList.remove('cal-day-focused');
-        input.remove();
-        const idx = dayCellsOrder.findIndex((d) => d.key === key);
-        if (idx !== -1 && idx + 1 < dayCellsOrder.length) {
-          const next = dayCellsOrder[idx + 1];
-          startAddingTask(next.inner, next.key);
-        }
-      }
-    });
-
-    input.addEventListener('blur', () => {
-      setTimeout(() => {
-        if (input.parentNode) {
-          input.remove();
-          td.classList.remove('cal-day-focused');
-        }
-      }, 100);
-    });
-  }
-
-  function renderCalendar(year, month) {
-    calLabel.textContent = MESES[month] + ' ' + year;
-
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const firstDow = new Date(year, month, 1).getDay(); // 0=Dom..6=Sáb
-    const firstMonIdx = (firstDow + 6) % 7; // 0=Seg..6=Dom
-
-    const cells = [];
-    for (let i = 0; i < firstMonIdx; i++) cells.push(null);
-    for (let d = 1; d <= daysInMonth; d++) cells.push(d);
-    while (cells.length % 7 !== 0) cells.push(null);
-
-    dayCellsOrder = [];
-    calBody.innerHTML = '';
-    for (let w = 0; w < cells.length / 7; w++) {
-      const tr = document.createElement('tr');
-      for (let c = 0; c < 5; c++) { // só Segunda a Sexta
-        const val = cells[w * 7 + c];
-        const isToday = val && year === today.getFullYear() && month === today.getMonth() && val === today.getDate();
-        const td = document.createElement('td');
-        td.className = 'align-top border-b border-r border-[#E3EAE8] last:border-r-0'
-          + (isToday ? ' cal-today' : '')
-          + (val ? ' cal-day' : '');
-
-        if (val) {
-          const key = dateKey(year, month, val);
-          const inner = document.createElement('div');
-          inner.className = 'cal-day-inner px-2.5 sm:px-3 pt-2 pb-2 min-h-16 sm:min-h-20 text-sm sm:text-base text-[#333]';
-
-          const numberSpan = document.createElement('div');
-          numberSpan.textContent = val;
-          inner.appendChild(numberSpan);
-
-          const feriado = getFeriado(year, month, val);
-          if (feriado) {
-            const feriadoEl = document.createElement('div');
-            feriadoEl.className = 'text-[10px] sm:text-[11px] font-bold uppercase tracking-wide text-[#B91C1C] mt-1 leading-snug';
-            feriadoEl.textContent = `FERIADO - ${feriado}`;
-            inner.appendChild(feriadoEl);
-          }
-
-          (tasksStore[key] || []).forEach((task, taskIndex) => {
-            if (task.done && !showCompleted) return;
-            inner.appendChild(makeTaskLine(inner, key, taskIndex));
-          });
-
-          inner.addEventListener('dblclick', () => startAddingTask(inner, key));
-          td.appendChild(inner);
-          dayCellsOrder.push({ key, inner });
-        }
-        tr.appendChild(td);
-      }
-      calBody.appendChild(tr);
-    }
-  }
-
-  // Preenche o select de meses uma única vez
-  const calGotoMes = document.getElementById('calGotoMes');
-  MESES.forEach((nome, idx) => {
-    const opt = document.createElement('option');
-    opt.value = idx;      // 0-11
-    opt.textContent = nome;
-    calGotoMes.appendChild(opt);
-  });
-
-  document.getElementById('calPrev').addEventListener('click', () => {
-    calMonth--;
-    if (calMonth < 0) { calMonth = 11; calYear--; }
-    renderCalendar(calYear, calMonth);
-  });
-  document.getElementById('calNext').addEventListener('click', () => {
-    calMonth++;
-    if (calMonth > 11) { calMonth = 0; calYear++; }
-    renderCalendar(calYear, calMonth);
-  });
-
-  const calTodayBtn  = document.getElementById('calToday');
-  const calGotoPopup = document.getElementById('calGotoPopup');
-  const calGotoAno   = document.getElementById('calGotoAno');
-
-  // --- Clique simples x duplo clique no botão de calendário ---
-  let calTodayClickTimer = null;
-
-  calTodayBtn.addEventListener('click', () => {
-    // Esconde o tooltip imediatamente ao clicar
-    clearTimeout(calTodayTooltipTimer);
-    calTodayTooltip.classList.remove('opacity-100');
-    calTodayTooltip.classList.add('opacity-0');
-
-    // Se já houver um timer pendente, é porque veio o segundo clique -> é duplo.
-    // Nesse caso não faz nada aqui; o dblclick cuida.
-    if (calTodayClickTimer) return;
-
-    calTodayClickTimer = setTimeout(() => {
-      calTodayClickTimer = null;
-      // Ação do clique simples: abrir o popup de mês/ano
-      const jaAberto = !calGotoPopup.classList.contains('hidden');
-      if (jaAberto) {
-        fecharGotoPopup();
-      } else {
-        abrirGotoPopup();
-      }
-    }, 220); // 220ms: abaixo disso o navegador ainda considera clique simples
-  });
-
-  calTodayBtn.addEventListener('dblclick', () => {
-    // Cancela o clique simples pendente
-    if (calTodayClickTimer) {
-      clearTimeout(calTodayClickTimer);
-      calTodayClickTimer = null;
-    }
-    // Ação do duplo clique: voltar para o mês atual
-    fecharGotoPopup();
-    calYear = today.getFullYear();
-    calMonth = today.getMonth();
-    renderCalendar(calYear, calMonth);
-  });
-
-  // --- Abrir / fechar o popup ---
-  function abrirGotoPopup() {
-    // Pré-preenche com o mês/ano atualmente exibidos
-    calGotoMes.value = String(calMonth);
-    calGotoAno.value = calYear;
-
-    calGotoPopup.classList.remove('hidden');
-    // Foco no select depois do paint, pra não roubar o foco durante o clique
-    setTimeout(() => calGotoMes.focus(), 0);
-  }
-
-  function fecharGotoPopup() {
-    calGotoPopup.classList.add('hidden');
-  }
-
-  // --- Botões do popup ---
-  document.getElementById('calGotoCancelar').addEventListener('click', () => {
-    fecharGotoPopup();
-  });
-
-  document.getElementById('calGotoIr').addEventListener('click', () => {
-    const novoMes = parseInt(calGotoMes.value, 10);
-    const novoAno = parseInt(calGotoAno.value, 10);
-    if (Number.isNaN(novoMes) || Number.isNaN(novoAno)) return;
-
-    calYear = novoAno;
-    calMonth = novoMes;
-    renderCalendar(calYear, calMonth);
-    fecharGotoPopup();
-  });
-
-  // --- Fechar popup ao clicar fora ---
-  document.addEventListener('click', (e) => {
-    if (calGotoPopup.classList.contains('hidden')) return;
-    if (calGotoPopup.contains(e.target)) return;
-    if (calTodayBtn.contains(e.target)) return;
-    fecharGotoPopup();
-  });
-
-  // --- Tooltip do botão de calendário (delay 200ms) ---
-  const calTodayTooltip = document.getElementById('calTodayTooltip');
-  let calTodayTooltipTimer = null;
-
-  calTodayBtn.addEventListener('mouseenter', () => {
-    calTodayTooltipTimer = setTimeout(() => {
-      calTodayTooltip.classList.remove('opacity-0');
-      calTodayTooltip.classList.add('opacity-100');
-    }, 200); // 0.2 segundo
-  });
-
-  calTodayBtn.addEventListener('mouseleave', () => {
-    clearTimeout(calTodayTooltipTimer);
-    calTodayTooltip.classList.remove('opacity-100');
-    calTodayTooltip.classList.add('opacity-0');
-  });
-
-  renderCalendar(calYear, calMonth);
-
-  // ---- Tela de login: transição pra tela inicial ----
-  const loginOverlay = document.getElementById('loginOverlay');
-  const loginBackdrop = document.getElementById('loginBackdrop');
-  const loginCard = document.getElementById('loginCard');
-  const loginLogo = document.getElementById('loginLogo');
-  const headerLogoEl = document.getElementById('headerLogo');
-
-  document.getElementById('loginEnter').addEventListener('click', () => {
-    // calcula o quanto a logo precisa andar/encolher até chegar na posição real dela no cabeçalho
-    const fromRect = loginLogo.getBoundingClientRect();
-    const toRect = headerLogoEl.getBoundingClientRect();
-    const scale = toRect.height / fromRect.height;
-    const dx = (toRect.left + toRect.width / 2) - (fromRect.left + fromRect.width / 2);
-    const dy = (toRect.top + toRect.height / 2) - (fromRect.top + fromRect.height / 2);
-
-    // desembaça e clareia o fundo
-    loginBackdrop.style.backdropFilter = 'blur(0px)';
-    loginBackdrop.style.webkitBackdropFilter = 'blur(0px)';
-    loginBackdrop.style.backgroundColor = 'rgba(0,0,0,0)';
-
-    // esconde o formulário
-    loginCard.style.opacity = '0';
-
-    // move a logo até o lugar dela no cabeçalho
-    loginLogo.style.transform = `translate(${dx}px, ${dy}px) scale(${scale})`;
-
-    setTimeout(() => {
-      headerLogoEl.style.opacity = '1';
-      loginOverlay.style.display = 'none';
-    }, 620);
-  });
 </script>
 
+{% block extra_js %}{% endblock %}
 </body>
 </html>
