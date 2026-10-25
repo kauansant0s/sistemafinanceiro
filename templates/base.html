@@ -70,7 +70,7 @@
       <a href="{% url 'financeiro:novo_lancamento' %}" class="hidden sm:inline text-ink no-underline text-[15px] tracking-wide whitespace-nowrap">Novo lançamento</a>
     </nav>
 
-    <form method="post" action="{% url 'logout' %}" class="shrink-0">
+    <form method="post" action="{% url 'accounts:logout' %}" class="shrink-0">
       {% csrf_token %}
       <button type="submit" class="flex items-center justify-center p-1.5 rounded-lg" aria-label="Sair">
         <svg class="w-5 h-5 sm:w-[24px] sm:h-[24px]" viewBox="0 0 50 50" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -106,7 +106,7 @@
 
     <a href="#" class="bg-pill rounded-2xl px-5 py-3.5 text-[15px] sm:text-base text-ink no-underline">Relatórios</a>
 
-    <a href="#" class="bg-pill rounded-2xl px-5 py-3.5 text-[15px] sm:text-base text-ink no-underline">Meu perfil ({{ user.first_name|default:user.username }})</a>
+    <a href="{% url 'accounts:perfil' %}" class="bg-pill rounded-2xl px-5 py-3.5 text-[15px] sm:text-base text-ink no-underline">Meu perfil ({{ user.nome_completo|default:user.username }})</a>
 
   </div>
 </div>

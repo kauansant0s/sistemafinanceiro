@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+
+{% block title %}Meu Perfil — Financeiro CTSul{% endblock %}
+{% block page_title %}Meu perfil{% endblock %}
+
+{% block content %}
+<div class="w-full max-w-4xl mx-auto flex flex-col gap-6 sm:gap-8">
+
+  <!-- Card: Informações -->
+  <div class="rounded-2xl shadow-md border border-[#E3EAE8] overflow-hidden">
+    <div class="bg-teal px-6 sm:px-8 py-4 sm:py-5 flex items-center justify-between">
+      <h2 class="text-white text-lg sm:text-xl tracking-wide">Informações</h2>
+      
+      {% if modo_edicao %}
+        <div class="flex items-center gap-3">
+          <button form="perfilForm" type="submit" class="rounded-lg bg-white text-teal px-4 py-1.5 text-sm font-medium hover:brightness-95 transition-[filter] cursor-pointer">
+            Salvar
+          </button>
+          <a href="{% url 'accounts:perfil' %}" class="rounded-lg bg-white/20 hover:bg-white/30 transition-colors px-4 py-1.5 text-sm text-white cursor-pointer">
+            Cancelar
+          </a>
+        </div>
+      {% else %}
+        <a href="?edit=1" class="rounded-lg bg-white/20 hover:bg-white/30 transition-colors px-4 py-1.5 text-sm text-white cursor-pointer">
+          Editar usuário
+        </a>
+      {% endif %}
+    </div>
+
+    <div class="bg-white px-6 sm:px-8 py-6 sm:py-8">
+      <form id="perfilForm" method="post" enctype="multipart/form-data" class="flex flex-col sm:flex-row gap-6 sm:gap-8">
+        {% csrf_token %}
+        
+        <!-- Imagem de perfil -->
+        <div class="flex flex-col items-center gap-3 shrink-0">
+          {% if user.foto %}
+            <img src="{{ user.foto.url }}" alt="Foto" class="w-28 h-28 sm:w-32 sm:h-32 rounded-full object-cover border-2 border-[#E3EAE8]">
+          {% else %}
+            <div class="w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-teal text-white flex items-center justify-center text-3xl font-bold border-2 border-[#E3EAE8]">
+              {{ user.nome_completo|default:user.username|slice:":1"|upper }}
+            </div>
+          {% endif %}
+          
+          {% if modo_edicao %}
+            <label class="text-xs text-[#6B7B78] hover:text-[#58B6A2] transition-colors underline cursor-pointer">
+              Trocar foto
+              <input type="file" name="foto" class="hidden" accept="image/*">
+            </label>
+          {% endif %}
+        </div>
+
+        <!-- Campos -->
+        <div class="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
+          
+          <!-- Nome Completo (ocupa 2 colunas) -->
+          <div class="flex flex-col gap-1 sm:col-span-2">
+            <span class="text-[10px] uppercase tracking-wide text-[#6B7B78]">Nome completo</span>
+            {% if modo_edicao %}
+              {{ form.nome_completo }}
+            {% else %}
+              <span class="text-sm sm:text-base text-ink">{{ user.nome_completo|default:"—" }}</span>
+            {% endif %}
+          </div>
+
+          <!-- Email -->
+          <div class="flex flex-col gap-1">
+            <span class="text-[10px] uppercase tracking-wide text-[#6B7B78]">E-mail</span>
+            {% if modo_edicao %}
+              {{ form.email }}
+            {% else %}
+              <span class="text-sm sm:text-base text-ink">{{ user.email|default:"—" }}</span>
+            {% endif %}
+          </div>
+
+          <!-- Telefone -->
+          <div class="flex flex-col gap-1">
+            <span class="text-[10px] uppercase tracking-wide text-[#6B7B78]">Telefone</span>
+            {% if modo_edicao %}
+              {{ form.telefone }}
+            {% else %}
+              <span class="text-sm sm:text-base text-ink">{{ user.telefone|default:"—" }}</span>
+            {% endif %}
+          </div>
+
+          <!-- Data de Criação (readonly) -->
+          <div class="flex flex-col gap-1">
+            <span class="text-[10px] uppercase tracking-wide text-[#6B7B78]">Data de criação</span>
+            <span class="text-sm sm:text-base text-ink">{{ user.date_joined|date:"d/m/Y" }}</span>
+          </div>
+
+          <!-- Tipo de Usuário (cargo) -->
+          <div class="flex flex-col gap-1">
+            <span class="text-[10px] uppercase tracking-wide text-[#6B7B78]">Tipo de usuário</span>
+            {% if modo_edicao %}
+              {{ form.cargo }}
+            {% else %}
+              <span class="text-sm sm:text-base text-ink">{{ user.get_cargo_display }}</span>
+            {% endif %}
+          </div>
+          
+        </div>
+      </form>
+    </div>
+  </div>
+
+    <!-- Card: Últimos logs -->
+  <div class="rounded-2xl shadow-md border border-[#E3EAE8] overflow-hidden">
+    <div class="bg-teal px-6 sm:px-8 py-4 sm:py-5">
+      <h2 class="text-white text-lg sm:text-xl tracking-wide">Últimos logs</h2>
+    </div>
+
+    <!-- Barra de Filtros de Logs -->
+    <div class="bg-white border-b border-[#E3EAE8] px-6 sm:px-8 py-4 flex flex-wrap items-center gap-4">
+      <form method="get" class="flex flex-wrap items-center gap-4 w-full">
+        <input type="hidden" name="edit" value="{% if modo_edicao %}1{% else %}0{% endif %}">
+        
+        <!-- Datas + Calendário -->
+        <div class="flex items-center gap-2">
+          <input type="date" name="data_inicial" id="dataInicial" value="{{ data_inicial }}" class="rounded-lg border border-[#CBD5D1] px-3 py-2 text-sm outline-none focus:border-teal">
+          
+          <!-- Botão Link/Deslink -->
+          <button type="button" id="btnLinkToggle" title="Linkar/Deslinkar datas" class="hover:opacity-70 transition-opacity p-1">
+            <svg id="svgDeslinkado" width="24" height="24" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M32.0835 27.4167L29.5835 24.8333C30.6946 24.5278 31.5974 23.9375 32.2918 23.0625C32.9863 22.1875 33.3335 21.1667 33.3335 20C33.3335 18.6111 32.8474 17.4306 31.8752 16.4583C30.9029 15.4861 29.7224 15 28.3335 15H21.6668V11.6667H28.3335C30.6391 11.6667 32.6043 12.4792 34.2293 14.1042C35.8543 15.7292 36.6668 17.6945 36.6668 20C36.6668 21.5833 36.2571 23.0417 35.4377 24.375C34.6182 25.7083 33.5002 26.7222 32.0835 27.4167ZM26.4168 21.6667L23.0835 18.3333H26.6668V21.6667H26.4168ZM33.0002 37.6667L2.3335 7.00001L4.66683 4.66667L35.3335 35.3333L33.0002 37.6667ZM18.3335 28.3333H11.6668C9.36127 28.3333 7.396 27.5208 5.771 25.8958C4.146 24.2708 3.3335 22.3056 3.3335 20C3.3335 18.0833 3.91683 16.375 5.0835 14.875C6.25016 13.375 7.75016 12.3889 9.5835 11.9167L12.6668 15H11.6668C10.2779 15 9.09739 15.4861 8.12516 16.4583C7.15294 17.4306 6.66683 18.6111 6.66683 20C6.66683 21.3889 7.15294 22.5695 8.12516 23.5417C9.09739 24.5139 10.2779 25 11.6668 25H18.3335V28.3333ZM13.3335 21.6667V18.3333H16.0418L19.3335 21.6667H13.3335Z" fill="#1D1B20"/>
+            </svg>
+            <svg id="svgLinkado" class="hidden" width="24" height="24" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M24.9998 11.6667H29.9998C31.0942 11.6667 32.1778 11.8822 33.1889 12.301C34.1999 12.7198 35.1186 13.3336 35.8924 14.1074C36.6662 14.8813 37.28 15.7999 37.6988 16.811C38.1176 17.822 38.3332 18.9057 38.3332 20C38.3332 21.0944 38.1176 22.178 37.6988 23.189C37.28 24.2001 36.6662 25.1187 35.8924 25.8926C35.1186 26.6664 34.1999 27.2802 33.1889 27.699C32.1778 28.1178 31.0942 28.3333 29.9998 28.3333H24.9998M14.9998 28.3333H9.99984C8.90549 28.3333 7.82186 28.1178 6.81081 27.699C5.79976 27.2802 4.8811 26.6664 4.10728 25.8926C2.54448 24.3298 1.6665 22.2101 1.6665 20C1.6665 17.7899 2.54448 15.6703 4.10728 14.1074C5.67008 12.5446 7.7897 11.6667 9.99984 11.6667H14.9998M13.3332 20H26.6665" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" stroke="#1E1E1E"/>
+            </svg>
+          </button>
+
+          <input type="date" name="data_final" id="dataFinal" value="{{ data_final }}" class="rounded-lg border border-[#CBD5D1] px-3 py-2 text-sm outline-none focus:border-teal">
+
+          <!-- Botão Hoje (Calendário) -->
+          <button type="button" id="btnHoje" title="Ir para hoje" class="text-[#1E1E1E] hover:opacity-70 transition-opacity p-1 ml-1">
+            <svg width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M32 4V12M16 4V12M6 20H42M10 8H38C40.2091 8 42 9.79086 42 12V40C42 42.2091 40.2091 44 38 44H10C7.79086 44 6 42.2091 6 40V12C6 9.79086 7.79086 8 10 8Z" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Checkboxes de Tipo -->
+        <div class="flex flex-wrap items-center gap-4 bg-[#F9FBFA] border border-[#E3EAE8] rounded-lg px-4 py-2">
+          <span class="text-xs uppercase tracking-wide text-[#6B7B78] font-medium mr-1">Tipos:</span>
+          
+          <label class="flex items-center gap-1.5 text-sm cursor-pointer">
+            <input type="checkbox" name="tipo" value="todos" class="w-4 h-4 accent-teal" {% if 'todos' in tipos_filtro %}checked{% endif %}>
+            Todos
+          </label>
+          <label class="flex items-center gap-1.5 text-sm cursor-pointer">
+            <input type="checkbox" name="tipo" value="inclusao" class="w-4 h-4 accent-teal" {% if 'inclusao' in tipos_filtro %}checked{% endif %}>
+            Inclusão
+          </label>
+          <label class="flex items-center gap-1.5 text-sm cursor-pointer">
+            <input type="checkbox" name="tipo" value="edicao" class="w-4 h-4 accent-teal" {% if 'edicao' in tipos_filtro %}checked{% endif %}>
+            Edição
+          </label>
+          <label class="flex items-center gap-1.5 text-sm cursor-pointer">
+            <input type="checkbox" name="tipo" value="exclusao" class="w-4 h-4 accent-teal" {% if 'exclusao' in tipos_filtro %}checked{% endif %}>
+            Exclusão
+          </label>
+          <label class="flex items-center gap-1.5 text-sm cursor-pointer">
+            <input type="checkbox" name="tipo" value="login" class="w-4 h-4 accent-teal" {% if 'login' in tipos_filtro %}checked{% endif %}>
+            Login
+          </label>
+          <label class="flex items-center gap-1.5 text-sm cursor-pointer">
+            <input type="checkbox" name="tipo" value="logout" class="w-4 h-4 accent-teal" {% if 'logout' in tipos_filtro %}checked{% endif %}>
+            Logout
+          </label>
+        </div>
+
+        <button type="submit" class="bg-teal text-white px-4 py-2 rounded-lg text-sm hover:brightness-95 transition-all ml-auto">
+          Filtrar
+        </button>
+      </form>
+    </div>
+
+    <div class="bg-white overflow-x-auto">
+      <table class="w-full border-collapse">
+        <thead>
+          <tr class="border-b border-[#E3EAE8]">
+            <th class="text-left text-xs sm:text-sm font-medium tracking-wide text-[#6B7B78] uppercase px-4 sm:px-6 py-3">Data/hora</th>
+            <th class="text-left text-xs sm:text-sm font-medium tracking-wide text-[#6B7B78] uppercase px-4 sm:px-6 py-3">Ação</th>
+            <th class="text-left text-xs sm:text-sm font-medium tracking-wide text-[#6B7B78] uppercase px-4 sm:px-6 py-3">Detalhes</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for log in logs %}
+          <tr class="border-b border-[#E3EAE8] last:border-b-0 hover:bg-[#F4F7F6] transition-colors">
+            <td class="px-4 sm:px-6 py-3 text-xs sm:text-sm text-ink whitespace-nowrap">{{ log.data }}</td>
+            <td class="px-4 sm:px-6 py-3 text-xs sm:text-sm whitespace-nowrap {{ log.cor }}">
+              {{ log.acao }}
+            </td>
+            <td class="px-4 sm:px-6 py-3 text-xs sm:text-sm text-ink break-words">{{ log.detalhe }}</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="3" class="px-4 py-6 text-center text-sm text-gray-500">Nenhum log encontrado para este filtro.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+  const inputInicial = document.getElementById('dataInicial');
+  const inputFinal = document.getElementById('dataFinal');
+  const btnLinkToggle = document.getElementById('btnLinkToggle');
+  const svgDeslinkado = document.getElementById('svgDeslinkado');
+  const svgLinkado = document.getElementById('svgLinkado');
+
+  let isLinked = false;
+
+  btnLinkToggle.addEventListener('click', (e) => {
+    e.preventDefault();
+    isLinked = !isLinked; // Inverte o estado
+
+    if (isLinked) {
+      inputFinal.value = inputInicial.value; // Sincroniza na hora
+      inputFinal.disabled = true;
+      inputFinal.classList.add('bg-gray-100', 'cursor-not-allowed');
+      
+      svgDeslinkado.classList.add('hidden');
+      svgLinkado.classList.remove('hidden');
+    } else {
+      inputFinal.disabled = false;
+      inputFinal.classList.remove('bg-gray-100', 'cursor-not-allowed');
+      
+      svgLinkado.classList.add('hidden');
+      svgDeslinkado.classList.remove('hidden');
+    }
+  });
+
+  // Se estiver linkado, toda vez que mudar a inicial, muda a final também
+  inputInicial.addEventListener('change', () => {
+    if (isLinked) {
+      inputFinal.value = inputInicial.value;
+    }
+  });
+
+  // Botão Hoje (Calendário)
+  const btnHoje = document.getElementById('btnHoje');
+  btnHoje.addEventListener('click', (e) => {
+    e.preventDefault();
+    const hoje = new Date().toISOString().split('T')[0]; // Pega AAAA-MM-DD de hoje
+    
+    inputInicial.value = hoje;
+    inputFinal.value = hoje;
+    
+    // Se estiver deslinkado, força a linkar de novo para manter os dois iguais
+    if (!isLinked) {
+      btnLinkToggle.click(); 
+    }
+  });
+</script>
+{% endblock %}

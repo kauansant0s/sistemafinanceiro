@@ -141,7 +141,7 @@ TIME_ZONE = "America/Sao_Paulo"
 STATIC_URL = "static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 
-LOGIN_URL = "login"
+LOGIN_URL = "accounts:login"
 LOGIN_REDIRECT_URL = "home"
 LOGOUT_REDIRECT_URL = "login"
 
