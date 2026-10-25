@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from django.urls import reverse
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
@@ -76,12 +77,16 @@ def buscar_contas(request):
 @login_required
 @vary_on_headers("HX-Request")
 def lancamentos(request):
+    buscou = bool(request.GET)  # a lista só aparece depois que o usuário pesquisa
     form = FiltroLancamentosForm(request.GET or None)
     qs = Lancamento.objects.select_related("subcentro__centro", "conta")
 
-    if form.is_bound:
-        qs = form.filtrar(qs) if form.is_valid() else qs.none()
+    if buscou and form.is_valid():
+        qs = form.filtrar(qs)
+    else:
+        qs = qs.none()
 
+    # Os totais são da pesquisa inteira, mesmo com receitas/despesas ocultadas
     totais = qs.aggregate(
         receitas=Sum("valor", filter=Q(conta__tipo="R")),
         despesas=Sum("valor", filter=Q(conta__tipo="D")),
@@ -89,18 +94,36 @@ def lancamentos(request):
     receitas = totais["receitas"] or Decimal("0")
     despesas = totais["despesas"] or Decimal("0")
 
-    pagina = Paginator(qs, 50).get_page(request.GET.get("page"))
+    # Clicar em "Receitas" esconde as receitas (ocultar=R), e vice-versa
+    ocultar = request.GET.get("ocultar", "")
+    if ocultar not in ("R", "D"):
+        ocultar = ""
+    lista = qs.exclude(conta__tipo=ocultar) if ocultar else qs
+
+    pagina = Paginator(lista, 50).get_page(request.GET.get("page"))
 
     params = request.GET.copy()
     params.pop("page", None)
 
+    def url_alternar(tipo):
+        p = params.copy()
+        if ocultar == tipo:
+            p.pop("ocultar", None)
+        else:
+            p["ocultar"] = tipo
+        return f"{reverse('financeiro:lancamentos')}?{p.urlencode()}"
+
     contexto = {
         "form": form,
+        "buscou": buscou,
         "pagina": pagina,
         "querystring": params.urlencode(),
         "receitas": receitas,
         "despesas": despesas,
         "saldo": receitas - despesas,
+        "ocultar": ocultar,
+        "url_alternar_receitas": url_alternar("R"),
+        "url_alternar_despesas": url_alternar("D"),
     }
 
     # Só devolve o pedaço da tabela quando é o HTMX pedindo

@@ -13,6 +13,14 @@
     header, #sidebar, .breadcrumb-bar, .no-print { display: none !important; }
     body { background: #fff !important; }
   }
+
+    #tabelaLancamentosBody td { vertical-align: top; }
+  .linha-aberta { background-color: #F4F7F6; }
+
+  /* hambúrguer do painel de ações vira X quando aberto */
+  #painelAcoesBtn[aria-expanded="true"] .line-top { transform: translateY(9px) rotate(45deg); }
+  #painelAcoesBtn[aria-expanded="true"] .line-mid { opacity: 0; }
+  #painelAcoesBtn[aria-expanded="true"] .line-bot { transform: translateY(-9px) rotate(-45deg); }
 </style>
 {% endblock %}
 
@@ -150,6 +158,79 @@
 <div id="tabelaResultados" class="mt-8">
   {% include "partials/tabela_lancamentos.html" %}
 </div>
+
+<div id="painelSomatorio" class="no-print hidden fixed bottom-6 right-6 z-30 flex items-stretch gap-3">
+
+  <div class="bg-white border border-[#E3EAE8] rounded-2xl shadow-lg px-5 py-4 min-w-[220px]">
+    <div class="flex flex-col gap-2">
+      <div class="flex items-center justify-between gap-4">
+        <span class="text-[12px] uppercase tracking-wide text-[#6B7B78]">Bruto</span>
+        <span id="somatorioBruto" class="text-sm sm:text-base font-medium text-ink tabular-nums">R$ 0,00</span>
+      </div>
+      <div class="flex items-center justify-between gap-4">
+        <span class="text-[12px] uppercase tracking-wide text-[#6B7B78]">Líquido / baixado</span>
+        <span id="somatorioLiquido" class="text-sm sm:text-base font-medium text-ink tabular-nums">R$ 0,00</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="relative">
+    <button id="painelAcoesBtn" type="button" aria-label="Abrir ações" aria-expanded="false"
+            class="h-full bg-white border border-[#E3EAE8] rounded-2xl shadow-lg px-4 flex items-center justify-center cursor-pointer">
+      <svg class="w-6 h-6 shrink-0" viewBox="0 0 55 55" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path class="hamburger-line line-top" d="M6.875 13.75H48.125" stroke="#1E1E1E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+        <path class="hamburger-line line-mid" d="M6.875 27.5H48.125" stroke="#1E1E1E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+        <path class="hamburger-line line-bot" d="M6.875 41.25H48.125" stroke="#1E1E1E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+
+    <div id="painelAcoesMenu" class="hidden absolute bottom-full right-0 mb-3 bg-white border border-[#E3EAE8] rounded-xl shadow-md overflow-hidden min-w-[220px]">
+
+      <button type="button" class="painel-acao w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#F4F7F6] transition-colors cursor-pointer">
+        <svg class="w-5 h-5 shrink-0" viewBox="0 0 50 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M25.0002 33.3333L14.5835 22.9166L17.5002 19.8958L22.9168 25.3125V8.33331H27.0835V25.3125L32.5002 19.8958L35.4168 22.9166L25.0002 33.3333ZM12.5002 41.6666C11.3543 41.6666 10.3734 41.2587 9.55745 40.4427C8.74148 39.6267 8.3335 38.6458 8.3335 37.5V31.25H12.5002V37.5H37.5002V31.25H41.6668V37.5C41.6668 38.6458 41.2588 39.6267 40.4429 40.4427C39.6269 41.2587 38.646 41.6666 37.5002 41.6666H12.5002Z" stroke="#1E1E1E" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="text-sm sm:text-base text-ink">Baixar</span>
+      </button>
+
+      <button type="button" class="painel-acao w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#F4F7F6] transition-colors cursor-pointer border-t border-[#E3EAE8]">
+        <svg class="w-5 h-5 shrink-0" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M32 4V12M16 4V12M6 20H42M10 8H38C40.2091 8 42 9.79086 42 12V40C42 42.2091 40.2091 44 38 44H10C7.79086 44 6 42.2091 6 40V12C6 9.79086 7.79086 8 10 8Z" stroke="#1E1E1E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="text-sm sm:text-base text-ink">Editar datas</span>
+      </button>
+
+      <button type="button" class="painel-acao w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#F4F7F6] transition-colors cursor-pointer border-t border-[#E3EAE8]">
+        <svg class="w-5 h-5 shrink-0" viewBox="0 0 48 65" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M1.5 62.7295V1.5H33.2213L46.5 15.5164V62.7295H1.5Z" stroke="#1E1E1E" stroke-width="4"/>
+          <path d="M8.13818 50.9258H38.3841M8.13818 38.3849H38.3841M8.13818 25.8439H38.3841" stroke="#1E1E1E" stroke-width="4" stroke-linecap="round"/>
+        </svg>
+        <span class="text-sm sm:text-base text-ink">Editar nota fiscal</span>
+      </button>
+
+      <button type="button" class="painel-acao w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#F4F7F6] transition-colors cursor-pointer border-t border-[#E3EAE8]">
+        <svg class="w-5 h-5 shrink-0" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M42.8801 22.1L24.5001 40.48C22.2484 42.7317 19.1945 43.9967 16.0101 43.9967C12.8257 43.9967 9.77178 42.7317 7.52009 40.48C5.2684 38.2283 4.00342 35.1744 4.00342 31.99C4.00342 28.8057 5.2684 25.7517 7.52009 23.5L25.9001 5.12002C27.4012 3.6189 29.4372 2.77557 31.5601 2.77557C33.683 2.77557 35.719 3.6189 37.2201 5.12002C38.7212 6.62115 39.5645 8.65711 39.5645 10.78C39.5645 12.9029 38.7212 14.9389 37.2201 16.44L18.8201 34.82C18.0695 35.5706 17.0515 35.9922 15.9901 35.9922C14.9286 35.9922 13.9107 35.5706 13.1601 34.82C12.4095 34.0695 11.9879 33.0515 11.9879 31.99C11.9879 30.9286 12.4095 29.9106 13.1601 29.16L30.1401 12.2" stroke="#1E1E1E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="text-sm sm:text-base text-ink">Anexar doc.</span>
+      </button>
+
+      <button type="button" class="painel-acao w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#F4F7F6] transition-colors cursor-pointer border-t border-[#E3EAE8]">
+        <svg class="w-5 h-5 shrink-0" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M42 16V42H6V16M20 24H28M2 6H46V16H2V6Z" stroke="#1E1E1E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="text-sm sm:text-base text-ink">Editar caixa</span>
+      </button>
+
+      <button type="button" class="painel-acao w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#F4F7F6] transition-colors cursor-pointer border-t border-[#E3EAE8]">
+        <svg class="w-5 h-5 shrink-0" viewBox="0 0 50 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M6.25 12.5H10.4167M10.4167 12.5H43.75M10.4167 12.5V41.6667C10.4167 42.7718 10.8557 43.8316 11.6371 44.613C12.4185 45.3944 13.4783 45.8334 14.5833 45.8334H35.4167C36.5217 45.8334 37.5815 45.3944 38.3629 44.613C39.1443 43.8316 39.5833 42.7718 39.5833 41.6667V12.5M16.6667 12.5V8.33335C16.6667 7.22829 17.1057 6.16848 17.8871 5.38708C18.6685 4.60567 19.7283 4.16669 20.8333 4.16669H29.1667C30.2717 4.16669 31.3315 4.60567 32.1129 5.38708C32.8943 6.16848 33.3333 7.22829 33.3333 8.33335V12.5" stroke="#1E1E1E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="text-sm sm:text-base text-ink">Excluir</span>
+      </button>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -208,5 +289,132 @@
   });
 
   document.getElementById('btnImprimir').addEventListener('click', () => window.print());
+
+  // ---- Seleção, linha expansível e painel de somatório ----
+  const resultados = document.getElementById('tabelaResultados');
+  const painelSomatorio = document.getElementById('painelSomatorio');
+  const somatorioBruto = document.getElementById('somatorioBruto');
+  const somatorioLiquido = document.getElementById('somatorioLiquido');
+  const painelAcoesBtn = document.getElementById('painelAcoesBtn');
+  const painelAcoesMenu = document.getElementById('painelAcoesMenu');
+
+  function formatarBRL(centavos) {
+    return (centavos / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+
+  function atualizarCabecalho() {
+    const botao = resultados.querySelector('#selecionarTodos');
+    if (!botao) return;
+    const total = resultados.querySelectorAll('.sel-linha').length;
+    const marcadas = resultados.querySelectorAll('.sel-linha:checked').length;
+    const todos = total > 0 && marcadas === total;
+    const alguns = marcadas > 0 && marcadas < total;
+
+    botao.querySelector('#selecionarTodosCheck').classList.toggle('hidden', !todos);
+    botao.querySelector('#selecionarTodosDash').classList.toggle('hidden', !alguns);
+    botao.setAttribute('aria-checked', todos ? 'true' : (alguns ? 'mixed' : 'false'));
+  }
+
+  function atualizarPainel() {
+    const marcadas = Array.from(resultados.querySelectorAll('.sel-linha:checked'));
+    if (marcadas.length === 0) {
+      painelSomatorio.classList.add('hidden');
+      fecharPainelAcoes();
+      return;
+    }
+
+    // Soma em centavos para não acumular erro de arredondamento
+    let bruto = 0;
+    let liquido = 0;
+    marcadas.forEach((cb) => {
+      bruto += Math.round(parseFloat(cb.dataset.valor) * 100);
+      if (cb.dataset.liquido) liquido += Math.round(parseFloat(cb.dataset.liquido) * 100);  // só os baixados
+    });
+
+    somatorioBruto.textContent = formatarBRL(bruto);
+    somatorioLiquido.textContent = formatarBRL(liquido);
+    painelSomatorio.classList.remove('hidden');
+  }
+
+  function atualizarSelecao() {
+    atualizarCabecalho();
+    atualizarPainel();
+  }
+
+  // Caixinha de cada linha
+  resultados.addEventListener('change', (e) => {
+    if (e.target.classList.contains('sel-linha')) atualizarSelecao();
+  });
+
+  // Clique no cabeçalho (selecionar todos) e clique na linha (abrir/fechar detalhes)
+  let tinhaSelecaoNoMousedown = false;
+
+  resultados.addEventListener('mousedown', () => {
+    const sel = window.getSelection();
+    tinhaSelecaoNoMousedown = !!sel && sel.toString().trim().length > 0;
+  });
+
+  resultados.addEventListener('click', (e) => {
+    if (e.target.closest('#selecionarTodos')) {
+      const caixas = resultados.querySelectorAll('.sel-linha');
+      const marcarTodas = resultados.querySelectorAll('.sel-linha:checked').length < caixas.length;
+      caixas.forEach((cb) => { cb.checked = marcarTodas; });
+      atualizarSelecao();
+      return;
+    }
+
+    // Clique em botão, link ou caixinha não abre os detalhes
+    if (e.target.closest('input, button, a, select, textarea, label')) return;
+
+    const linha = e.target.closest('tr[data-lancamento-id]');
+    if (!linha) return;
+
+    // Se a pessoa estava selecionando texto, não abre os detalhes
+    const sel = window.getSelection();
+    const temSelecaoAgora = !!sel && sel.toString().trim().length > 0;
+    if (tinhaSelecaoNoMousedown || temSelecaoAgora) {
+      tinhaSelecaoNoMousedown = false;
+      return;
+    }
+    tinhaSelecaoNoMousedown = false;
+
+    const detalhe = resultados.querySelector(`tr[data-detalhe-de="${linha.dataset.lancamentoId}"]`);
+    if (!detalhe) return;
+    const abrir = detalhe.classList.contains('hidden');
+    detalhe.classList.toggle('hidden', !abrir);
+    linha.classList.toggle('linha-aberta', abrir);
+  });
+
+  // Menu de ações do painel (por enquanto só abre e fecha)
+  function fecharPainelAcoes() {
+    painelAcoesBtn.setAttribute('aria-expanded', 'false');
+    painelAcoesMenu.classList.add('hidden');
+  }
+
+  painelAcoesBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const aberto = painelAcoesBtn.getAttribute('aria-expanded') === 'true';
+    if (aberto) {
+      fecharPainelAcoes();
+    } else {
+      painelAcoesBtn.setAttribute('aria-expanded', 'true');
+      painelAcoesMenu.classList.remove('hidden');
+    }
+  });
+
+  document.addEventListener('click', (e) => {
+    if (painelAcoesMenu.classList.contains('hidden')) return;
+    if (painelAcoesMenu.contains(e.target) || painelAcoesBtn.contains(e.target)) return;
+    fecharPainelAcoes();
+  });
+
+  document.querySelectorAll('.painel-acao').forEach((btn) => {
+    btn.addEventListener('click', fecharPainelAcoes);
+  });
+
+  // Quando a tabela é trocada (nova busca, página, ocultar receitas/despesas), a seleção recomeça
+  document.body.addEventListener('htmx:afterSwap', (e) => {
+    if (e.target.id === 'tabelaResultados') atualizarSelecao();
+  });
 </script>
 {% endblock %}
