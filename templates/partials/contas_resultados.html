@@ -1,0 +1,5 @@
+{% for c in contas %}
+<div class="conta-opcao px-4 py-2.5 text-sm sm:text-base cursor-pointer hover:bg-[#F4F7F6]" data-id="{{ c.pk }}" data-texto="{{ c }}">{{ c }}</div>
+{% empty %}
+<div class="px-4 py-2.5 text-sm text-[#6B6B6B]">Nenhuma conta encontrada.</div>
+{% endfor %}

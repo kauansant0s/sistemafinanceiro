@@ -1,0 +1,4 @@
+<option value="" disabled {% if not subcentro_selecionado %}selected{% endif %}>Selecione um Sub-Centro...</option>
+{% for sc in subcentros %}
+<option value="{{ sc.pk }}" {% if subcentro_selecionado and sc.pk|stringformat:"s" == subcentro_selecionado|stringformat:"s" %}selected{% endif %}>{{ sc.nome }}</option>
+{% endfor %}

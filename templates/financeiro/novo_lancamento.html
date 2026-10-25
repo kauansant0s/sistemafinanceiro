@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+
+{% block title %}Financeiro CTSul — Novo Lançamento{% endblock %}
+{% block page_title %}Novo lançamento{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<style>
+  select.form-select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%231E1E1E' stroke-width='2'%3E%3Cpath d='M5 8l5 5 5-5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; background-size: 16px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="flex justify-center">
+  <div class="w-full max-w-3xl">
+    <div class="rounded-2xl shadow-md border border-[#E3EAE8]">
+      <div class="bg-teal rounded-t-2xl px-6 sm:px-8 py-4 sm:py-5">
+        <h2 class="text-white text-lg sm:text-xl tracking-wide">Novo Lançamento</h2>
+      </div>
+
+      <form method="post" id="lancamentoForm" data-ano="{{ ano_atual }}" class="bg-white rounded-b-2xl px-6 sm:px-8 py-6 sm:py-8">
+        {% csrf_token %}
+
+        {% for e in form.non_field_errors %}
+          <p class="mb-4 rounded-xl bg-[#FBE9E9] px-4 py-2 text-sm text-[#8A1C1C]">{{ e }}</p>
+        {% endfor %}
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
+          <div>
+            <label for="centro" class="block text-sm sm:text-base mb-2">Centro</label>
+            <select id="centro" name="centro"
+                    hx-get="{% url 'financeiro:subcentros' %}" hx-trigger="change"
+                    hx-target="#subcentro" hx-swap="innerHTML"
+                    class="form-select w-full rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 pr-9 text-sm sm:text-base outline-none focus:border-teal">
+              <option value="" disabled {% if not form.centro.value %}selected{% endif %}>Selecione um Centro...</option>
+              {% for c in form.fields.centro.queryset %}
+              <option value="{{ c.pk }}" {% if form.centro.value|stringformat:"s" == c.pk|stringformat:"s" %}selected{% endif %}>{{ c.nome }}</option>
+              {% endfor %}
+            </select>
+            {% for e in form.centro.errors %}<p class="mt-1 text-sm text-[#8A1C1C]">{{ e }}</p>{% endfor %}
+          </div>
+
+          <div>
+            <label for="subcentro" class="block text-sm sm:text-base mb-2">Sub-Centro</label>
+            <select id="subcentro" name="subcentro"
+                    class="form-select w-full rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 pr-9 text-sm sm:text-base outline-none focus:border-teal">
+              {% include "partials/subcentro_options.html" %}
+            </select>
+            {% for e in form.subcentro.errors %}<p class="mt-1 text-sm text-[#8A1C1C]">{{ e }}</p>{% endfor %}
+          </div>
+        </div>
+
+        <div id="contaField" class="hidden mt-5 sm:mt-6 relative">
+          <label for="contaBusca" class="block text-sm sm:text-base mb-2">Receita/Despesa</label>
+          <input type="text" id="contaBusca" name="q" autocomplete="off"
+                 placeholder="Digite o código ou a descrição..."
+                 value="{{ conta_atual|default_if_none:'' }}"
+                 hx-get="{% url 'financeiro:buscar_contas' %}" hx-trigger="input changed delay:200ms"
+                 hx-target="#contaResultados" hx-swap="innerHTML"
+                 class="w-full rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 text-sm sm:text-base outline-none focus:border-teal">
+          <input type="hidden" id="contaId" name="conta" value="{{ conta_atual.pk|default_if_none:'' }}">
+          <div id="contaResultados" class="hidden absolute left-0 right-0 mt-1 bg-white border border-[#CBD5D1] rounded-xl shadow-md overflow-hidden z-10"></div>
+          {% for e in form.conta.errors %}<p class="mt-1 text-sm text-[#8A1C1C]">{{ e }}</p>{% endfor %}
+        </div>
+
+        <div id="restoCampos" class="hidden">
+
+          <div class="mt-5 sm:mt-6">
+            <label for="descricao" class="block text-sm sm:text-base mb-2">Descrição</label>
+            <input type="text" id="descricao" name="descricao" autocomplete="off"
+                   value="{{ form.descricao.value|default_if_none:'' }}" placeholder="DESCRIÇÃO DO LANÇAMENTO..."
+                   class="uppercase w-full rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 text-sm sm:text-base outline-none focus:border-teal">
+            {% for e in form.descricao.errors %}<p class="mt-1 text-sm text-[#8A1C1C]">{{ e }}</p>{% endfor %}
+          </div>
+
+          <div class="mt-5 sm:mt-6">
+            <label for="observacoes" class="block text-sm sm:text-base mb-2">Observações</label>
+            <input type="text" id="observacoes" name="observacoes" autocomplete="off"
+                   value="{{ form.observacoes.value|default_if_none:'' }}" placeholder="Observações..."
+                   class="w-full rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 text-sm sm:text-base outline-none focus:border-teal">
+          </div>
+
+          <div class="mt-5 sm:mt-6 grid grid-cols-2 gap-5 sm:gap-6">
+            <div>
+              <label for="notaAno" class="block text-sm sm:text-base mb-2">Nota fiscal (ano)</label>
+              <input type="text" id="notaAno" name="nota_fiscal_ano" inputmode="numeric" maxlength="4" tabindex="-1"
+                     value="{{ form.nota_fiscal_ano.value|default_if_none:'' }}"
+                     class="w-full rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 text-sm sm:text-base outline-none focus:border-teal">
+              {% for e in form.nota_fiscal_ano.errors %}<p class="mt-1 text-sm text-[#8A1C1C]">{{ e }}</p>{% endfor %}
+            </div>
+            <div>
+              <label for="notaNumero" class="block text-sm sm:text-base mb-2">Nota fiscal (número)</label>
+              <input type="text" id="notaNumero" name="nota_fiscal_numero" autocomplete="off"
+                     value="{{ form.nota_fiscal_numero.value|default_if_none:'' }}"
+                     class="w-full rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 text-sm sm:text-base outline-none focus:border-teal">
+            </div>
+          </div>
+
+          <div class="mt-5 sm:mt-6">
+            <label for="valor" class="block text-sm sm:text-base mb-2">Valor</label>
+            <input type="text" id="valor" name="valor" inputmode="numeric" autocomplete="off" placeholder="R$ 0,00"
+                   value="{{ form.valor.value|default_if_none:'' }}"
+                   class="w-full rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 text-sm sm:text-base outline-none focus:border-teal">
+            {% for e in form.valor.errors %}<p class="mt-1 text-sm text-[#8A1C1C]">{{ e }}</p>{% endfor %}
+          </div>
+
+          <div class="mt-5 sm:mt-6 grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
+            <div>
+              <label for="dataCompetencia" class="block text-sm sm:text-base mb-2">Competência</label>
+              <input type="text" id="dataCompetencia" name="data_competencia" autocomplete="off" placeholder="dd/mm/aaaa"
+                     value="{{ form.data_competencia.value|default_if_none:'' }}"
+                     class="w-full rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 text-sm sm:text-base outline-none focus:border-teal">
+              {% for e in form.data_competencia.errors %}<p class="mt-1 text-sm text-[#8A1C1C]">{{ e }}</p>{% endfor %}
+            </div>
+            <div>
+              <label for="dataVencimento" class="block text-sm sm:text-base mb-2">Vencimento</label>
+              <input type="text" id="dataVencimento" name="data_vencimento" autocomplete="off" placeholder="dd/mm/aaaa"
+                     value="{{ form.data_vencimento.value|default_if_none:'' }}"
+                     class="w-full rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 text-sm sm:text-base outline-none focus:border-teal">
+              {% for e in form.data_vencimento.errors %}<p class="mt-1 text-sm text-[#8A1C1C]">{{ e }}</p>{% endfor %}
+            </div>
+          </div>
+
+          <div class="flex justify-end gap-3 mt-8">
+            <a href="{% url 'home' %}" class="rounded-xl border border-[#CBD5D1] px-6 py-2.5 text-sm sm:text-base no-underline text-ink hover:bg-[#F4F7F6]">Cancelar</a>
+            <button type="submit" class="bg-teal hover:brightness-95 transition-[filter] text-white rounded-xl px-8 py-2.5 text-sm sm:text-base">Salvar</button>
+          </div>
+        </div>
+
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/pt.js"></script>
+<script>
+  const formLanc = document.getElementById('lancamentoForm');
+  const centro = document.getElementById('centro');
+  const subcentro = document.getElementById('subcentro');
+  const contaField = document.getElementById('contaField');
+  const contaBusca = document.getElementById('contaBusca');
+  const contaId = document.getElementById('contaId');
+  const contaResultados = document.getElementById('contaResultados');
+  const restoCampos = document.getElementById('restoCampos');
+  const descricao = document.getElementById('descricao');
+  const notaAno = document.getElementById('notaAno');
+  const valor = document.getElementById('valor');
+
+  function mostrar(el, sim) { el.classList.toggle('hidden', !sim); }
+
+  function limparConta() {
+    contaId.value = '';
+    contaBusca.value = '';
+    contaResultados.innerHTML = '';
+    mostrar(contaResultados, false);
+  }
+
+  // Revelação em cascata: sub-centro -> conta -> resto do formulário
+  function atualizarEstados() {
+    mostrar(contaField, !!subcentro.value);
+    mostrar(restoCampos, !!subcentro.value && !!contaId.value);
+  }
+
+  centro.addEventListener('change', () => {
+    limparConta();
+    mostrar(contaField, false);
+    mostrar(restoCampos, false);
+  });
+
+  subcentro.addEventListener('change', () => {
+    atualizarEstados();
+    if (subcentro.value) contaBusca.focus();
+  });
+
+  // Digitar de novo na busca invalida a conta escolhida antes
+  contaBusca.addEventListener('input', () => {
+    contaId.value = '';
+    mostrar(restoCampos, false);
+  });
+
+  // Lista de resultados que o HTMX trouxe
+  document.body.addEventListener('htmx:afterSwap', (e) => {
+    if (e.target.id === 'contaResultados') {
+      mostrar(contaResultados, e.target.textContent.trim() !== '');
+    }
+  });
+
+  contaResultados.addEventListener('click', (e) => {
+    const opcao = e.target.closest('.conta-opcao');
+    if (!opcao) return;
+    contaId.value = opcao.dataset.id;
+    contaBusca.value = opcao.dataset.texto;
+    contaResultados.innerHTML = '';
+    mostrar(contaResultados, false);
+    mostrar(restoCampos, true);
+    if (!notaAno.value) notaAno.value = formLanc.dataset.ano;  // ano atual
+    descricao.focus();
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!contaField.contains(e.target)) mostrar(contaResultados, false);
+  });
+
+  // Descrição sempre em maiúsculas
+  descricao.addEventListener('input', () => {
+    const pos = descricao.selectionStart;
+    descricao.value = descricao.value.toUpperCase();
+    descricao.setSelectionRange(pos, pos);
+  });
+
+  // Valor em R$, digitando pelos centavos
+  valor.addEventListener('input', () => {
+    const digitos = valor.value.replace(/\D/g, '').slice(0, 12);
+    if (!digitos) { valor.value = ''; return; }
+    const numero = parseInt(digitos, 10) / 100;
+    valor.value = 'R$ ' + numero.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  });
+
+  // Datas: calendário (Flatpickr) + digitação com barras automáticas
+  ['dataCompetencia', 'dataVencimento'].forEach((id) => {
+    const el = document.getElementById(id);
+    flatpickr(el, { locale: 'pt', dateFormat: 'd/m/Y', allowInput: true });
+    el.addEventListener('input', () => {
+      const d = el.value.replace(/\D/g, '').slice(0, 8);
+      let saida = d;
+      if (d.length > 4) saida = d.slice(0, 2) + '/' + d.slice(2, 4) + '/' + d.slice(4);
+      else if (d.length > 2) saida = d.slice(0, 2) + '/' + d.slice(2);
+      el.value = saida;
+    });
+  });
+
+  atualizarEstados();  // importante quando a página volta com erros de validação
+</script>
+{% endblock %}
