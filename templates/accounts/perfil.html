@@ -110,8 +110,8 @@
     </div>
 
     <!-- Barra de Filtros de Logs -->
-    <div class="bg-white border-b border-[#E3EAE8] px-6 sm:px-8 py-4 flex flex-wrap items-center gap-4">
-      <form method="get" class="flex flex-wrap items-center gap-4 w-full">
+    <div id="filtros_logs" class="bg-white border-b border-[#E3EAE8] px-6 sm:px-8 py-4 flex flex-wrap items-center gap-4">
+      <form method="get" action="#filtros_logs" class="flex flex-wrap items-center gap-4 w-full">
         <input type="hidden" name="edit" value="{% if modo_edicao %}1{% else %}0{% endif %}">
         
         <!-- Datas + Calendário -->
@@ -212,6 +212,25 @@
   const svgLinkado = document.getElementById('svgLinkado');
 
   let isLinked = false;
+  
+  // --- Manter posição do scroll ---
+  window.addEventListener('beforeunload', () => {
+    // Salva a posição atual da tela antes de recarregar
+    localStorage.setItem('scrollPosPerfil', window.scrollY);
+  });
+
+  window.addEventListener('load', () => {
+    // Se a URL tiver parâmetros (ou seja, recém filtrou), volta pra posição salva
+    if (window.location.search !== "") {
+      const scrollPos = localStorage.getItem('scrollPosPerfil');
+      if (scrollPos) {
+        window.scrollTo(0, parseInt(scrollPos));
+      }
+    } else {
+      // Se entrou na página limpa, remove a memória
+      localStorage.removeItem('scrollPosPerfil');
+    }
+  });
 
   btnLinkToggle.addEventListener('click', (e) => {
     e.preventDefault();
@@ -253,6 +272,32 @@
     if (!isLinked) {
       btnLinkToggle.click(); 
     }
+  });
+
+  // --- Lógica dos Checkboxes (Todos vs Individuais) ---
+  const checkTodos = document.querySelector('input[name="tipo"][value="todos"]');
+  const checkIndividuais = document.querySelectorAll('input[name="tipo"]:not([value="todos"])');
+
+  checkTodos.addEventListener('change', () => {
+    if (checkTodos.checked) {
+      // Se marcou "Todos", desmarca todos os outros
+      checkIndividuais.forEach(cb => cb.checked = false);
+    }
+  });
+
+  checkIndividuais.forEach(cb => {
+    cb.addEventListener('change', () => {
+      // Se marcou qualquer outro, desmarca o "Todos"
+      if (cb.checked) {
+        checkTodos.checked = false;
+      }
+      
+      // Se o usuário desmarcou todos os individuais, marcamos "Todos" de volta (opcional, mas ajuda a não enviar vazio)
+      const algumMarcado = Array.from(checkIndividuais).some(c => c.checked);
+      if (!algumMarcado) {
+        checkTodos.checked = true;
+      }
+    });
   });
 </script>
 {% endblock %}
