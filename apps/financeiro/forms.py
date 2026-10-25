@@ -80,6 +80,7 @@ class FiltroLancamentosForm(forms.Form):
     valor_max = forms.CharField(required=False)
     descricao = forms.CharField(required=False)
     nota = forms.CharField(required=False)
+    observacao = forms.CharField(required=False)
 
     def clean_valor_min(self):
         return _valor_br(self.cleaned_data["valor_min"])
@@ -109,6 +110,8 @@ class FiltroLancamentosForm(forms.Form):
 
         if d.get("descricao"):
             qs = qs.filter(descricao__icontains=d["descricao"])
+        if d.get("observacao"):
+            qs = qs.filter(observacoes__icontains=d["observacao"])
         if d.get("nota"):
             qs = qs.filter(nota_fiscal_numero__icontains=d["nota"])
         return qs

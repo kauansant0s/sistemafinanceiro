@@ -91,12 +91,14 @@ def lancamentos(request):
         receitas=Sum("valor", filter=Q(conta__tipo="R")),
         despesas=Sum("valor", filter=Q(conta__tipo="D")),
     )
+    # O resumo só faz sentido quando o resultado tem receitas E despesas
+    mostrar_resumo = totais["receitas"] is not None and totais["despesas"] is not None
     receitas = totais["receitas"] or Decimal("0")
     despesas = totais["despesas"] or Decimal("0")
 
     # Clicar em "Receitas" esconde as receitas (ocultar=R), e vice-versa
     ocultar = request.GET.get("ocultar", "")
-    if ocultar not in ("R", "D"):
+    if ocultar not in ("R", "D") or not mostrar_resumo:
         ocultar = ""
     lista = qs.exclude(conta__tipo=ocultar) if ocultar else qs
 
@@ -122,6 +124,7 @@ def lancamentos(request):
         "despesas": despesas,
         "saldo": receitas - despesas,
         "ocultar": ocultar,
+        "mostrar_resumo": mostrar_resumo,
         "url_alternar_receitas": url_alternar("R"),
         "url_alternar_despesas": url_alternar("D"),
     }
