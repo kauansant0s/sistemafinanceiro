@@ -1,0 +1,68 @@
+{% url 'financeiro:lancamentos' as url_lista %}
+
+{% if form.errors %}
+<div class="mb-4 rounded-xl bg-[#FBE9E9] px-4 py-3 text-sm text-[#8A1C1C]">
+  Há filtros com valor inválido (datas no formato dd/mm/aaaa, valores só com números):
+  {% for campo, erros in form.errors.items %}{% for e in erros %}<span class="block">• {{ e }}</span>{% endfor %}{% endfor %}
+</div>
+{% endif %}
+
+<div class="mb-4 flex flex-wrap items-center justify-between gap-3 text-sm sm:text-base">
+  <span>{{ pagina.paginator.count }} lançamento{{ pagina.paginator.count|pluralize }} encontrado{{ pagina.paginator.count|pluralize }}</span>
+  <span class="flex flex-wrap gap-x-5 gap-y-1">
+    <span>Receitas: <strong class="font-normal text-[#2F7D6B]">R$ {{ receitas|floatformat:"2g" }}</strong></span>
+    <span>Despesas: <strong class="font-normal text-[#A33A3A]">R$ {{ despesas|floatformat:"2g" }}</strong></span>
+    <span>Saldo: <strong class="font-normal {% if saldo < 0 %}text-[#A33A3A]{% else %}text-[#2F7D6B]{% endif %}">R$ {{ saldo|floatformat:"2g" }}</strong></span>
+  </span>
+</div>
+
+<div class="overflow-x-auto rounded-2xl shadow-md border border-[#E3EAE8] bg-white">
+  <table class="w-full text-left text-sm sm:text-base">
+    <thead class="bg-teal text-white">
+      <tr>
+        <th class="px-4 py-3 font-normal whitespace-nowrap">Vencimento</th>
+        <th class="px-4 py-3 font-normal whitespace-nowrap">Competência</th>
+        <th class="px-4 py-3 font-normal">Origem</th>
+        <th class="px-4 py-3 font-normal">Receita/Despesa</th>
+        <th class="px-4 py-3 font-normal">Descrição</th>
+        <th class="px-4 py-3 font-normal whitespace-nowrap">Nota</th>
+        <th class="px-4 py-3 font-normal text-right">Valor</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for l in pagina %}
+      <tr class="border-t border-[#E3EAE8] hover:bg-[#F4F7F6]">
+        <td class="px-4 py-3 whitespace-nowrap">{{ l.data_vencimento|date:"d/m/Y" }}</td>
+        <td class="px-4 py-3 whitespace-nowrap">{{ l.data_competencia|date:"d/m/Y" }}</td>
+        <td class="px-4 py-3">{{ l.subcentro }}</td>
+        <td class="px-4 py-3">{{ l.conta }}</td>
+        <td class="px-4 py-3">{{ l.descricao }}</td>
+        <td class="px-4 py-3 whitespace-nowrap">{% if l.nota_fiscal_numero %}{{ l.nota_fiscal_numero }}{% if l.nota_fiscal_ano %}/{{ l.nota_fiscal_ano }}{% endif %}{% else %}—{% endif %}</td>
+        <td class="px-4 py-3 text-right whitespace-nowrap {% if l.conta.tipo == 'R' %}text-[#2F7D6B]{% else %}text-[#A33A3A]{% endif %}">R$ {{ l.valor|floatformat:"2g" }}</td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="7" class="px-4 py-10 text-center text-[#6B6B6B]">Nenhum lançamento encontrado.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if pagina.has_other_pages %}
+<nav class="no-print mt-6 flex items-center justify-center gap-6 text-sm sm:text-base">
+  {% if pagina.has_previous %}
+  <a href="{{ url_lista }}?{% if querystring %}{{ querystring }}&{% endif %}page={{ pagina.previous_page_number }}"
+     hx-get="{{ url_lista }}?{% if querystring %}{{ querystring }}&{% endif %}page={{ pagina.previous_page_number }}"
+     hx-target="#tabelaResultados" hx-push-url="true"
+     class="rounded-xl border border-[#CBD5D1] bg-white px-4 py-2 no-underline text-ink hover:bg-[#F4F7F6]">‹ Anterior</a>
+  {% endif %}
+  <span>Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
+  {% if pagina.has_next %}
+  <a href="{{ url_lista }}?{% if querystring %}{{ querystring }}&{% endif %}page={{ pagina.next_page_number }}"
+     hx-get="{{ url_lista }}?{% if querystring %}{{ querystring }}&{% endif %}page={{ pagina.next_page_number }}"
+     hx-target="#tabelaResultados" hx-push-url="true"
+     class="rounded-xl border border-[#CBD5D1] bg-white px-4 py-2 no-underline text-ink hover:bg-[#F4F7F6]">Próxima ›</a>
+  {% endif %}
+</nav>
+{% endif %}

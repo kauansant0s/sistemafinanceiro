@@ -66,7 +66,7 @@
 
     <nav class="flex items-center gap-4 sm:gap-9 ml-auto mr-1 sm:mr-2">
       <a href="{% url 'home' %}" class="text-ink no-underline text-xs sm:text-[15px] tracking-wide whitespace-nowrap">Página inicial</a>
-      <a href="#" class="text-ink no-underline text-xs sm:text-[15px] tracking-wide whitespace-nowrap">Lançamentos</a>
+      <a href="{% url 'financeiro:lancamentos' %}" class="text-ink no-underline text-xs sm:text-[15px] tracking-wide whitespace-nowrap">Lançamentos</a>
       <a href="{% url 'financeiro:novo_lancamento' %}" class="hidden sm:inline text-ink no-underline text-[15px] tracking-wide whitespace-nowrap">Novo lançamento</a>
     </nav>
 
@@ -97,7 +97,7 @@
 
     <div id="lancamentosSub" class="overflow-hidden max-h-0 opacity-0 transition-all duration-200 ease-in-out">
       <div class="flex flex-col gap-2.5 pl-8 sm:pl-10 pt-2.5">
-        <a href="#" class="bg-pill rounded-2xl px-5 py-3.5 text-[15px] sm:text-base text-ink no-underline">Lançamentos</a>
+        <a href="{% url 'financeiro:lancamentos' %}" class="bg-pill rounded-2xl px-5 py-3.5 text-[15px] sm:text-base text-ink no-underline">Lançamentos</a>
         <a href="{% url 'financeiro:novo_lancamento' %}" class="bg-pill rounded-2xl px-5 py-3.5 text-[15px] sm:text-base text-ink no-underline">Novo Lançamento</a>
       </div>
     </div>

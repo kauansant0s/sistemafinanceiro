@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+
+{% block title %}Financeiro CTSul — Lançamentos{% endblock %}
+{% block page_title %}Lançamentos{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<style>
+  select.form-select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%231E1E1E' stroke-width='2'%3E%3Cpath d='M5 8l5 5 5-5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; background-size: 16px; }
+  .chev { transition: transform .2s ease; }
+  .chev.rotated { transform: rotate(180deg); }
+  @media print {
+    header, #sidebar, .breadcrumb-bar, .no-print { display: none !important; }
+    body { background: #fff !important; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="filtrosCard" class="no-print rounded-2xl shadow-md border border-[#E3EAE8]">
+
+  <button type="button" id="filtrosToggle" aria-expanded="true"
+          class="w-full bg-teal rounded-t-2xl px-6 sm:px-8 py-4 sm:py-5 flex items-center justify-between">
+    <span class="text-white text-lg sm:text-xl tracking-wide">Filtros</span>
+    <svg id="filtrosChevron" class="chev w-6 h-6 shrink-0" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M17.2678 10.2978L18.0388 25.009M10.2977 18.0389L18.0388 25.009L25.0089 17.268" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </button>
+
+  <form id="filtrosForm" method="get" action="{% url 'financeiro:lancamentos' %}"
+        hx-get="{% url 'financeiro:lancamentos' %}" hx-target="#tabelaResultados" hx-push-url="true"
+        class="bg-white rounded-b-2xl px-6 sm:px-8 py-6 sm:py-8">
+
+    <!-- Filtro por origem -->
+    <div>
+      <button type="button" class="secao-toggle flex items-center gap-2 text-base sm:text-lg text-[#4A5B57] tracking-wide mb-4"
+              aria-expanded="true" data-alvo="secOrigem" data-aberta="true">
+        Filtro por origem
+        <svg class="chev w-4 h-4 shrink-0" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M17.2678 10.2978L18.0388 25.009M10.2977 18.0389L18.0388 25.009L25.0089 17.268" stroke="#4A5B57" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <div id="secOrigem" class="flex flex-wrap items-center gap-4 sm:gap-6">
+        <div class="w-56 sm:w-64">
+          <select id="filtroCentro" name="centro"
+                  hx-get="{% url 'financeiro:subcentros' %}?filtro=1" hx-trigger="change"
+                  hx-target="#filtroSubcentro" hx-swap="innerHTML" hx-push-url="false"
+                  class="form-select w-full rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 pr-9 text-sm sm:text-base outline-none focus:border-teal">
+            <option value="">Todos os Centros...</option>
+            {% for c in form.fields.centro.queryset %}
+            <option value="{{ c.pk }}" {% if request.GET.centro == c.pk|stringformat:"s" %}selected{% endif %}>{{ c.nome }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="w-56 sm:w-64">
+          <select id="filtroSubcentro" name="subcentro"
+                  class="form-select w-full rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 pr-9 text-sm sm:text-base outline-none focus:border-teal">
+            {% include "partials/subcentro_filtro_options.html" %}
+          </select>
+        </div>
+        <div class="w-56 sm:w-64">
+          <select name="tipo"
+                  class="form-select w-full rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 pr-9 text-sm sm:text-base outline-none focus:border-teal">
+            <option value="">Receitas e Despesas...</option>
+            <option value="R" {% if request.GET.tipo == 'R' %}selected{% endif %}>Somente receitas</option>
+            <option value="D" {% if request.GET.tipo == 'D' %}selected{% endif %}>Somente despesas</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filtro por data -->
+    <div class="mt-6">
+      <button type="button" class="secao-toggle flex items-center gap-2 text-base sm:text-lg text-[#4A5B57] tracking-wide mb-4"
+              aria-expanded="false" data-alvo="secData"
+              data-aberta="{% if request.GET.data_inicial or request.GET.data_final %}true{% else %}false{% endif %}">
+        Filtro por data
+        <svg class="chev w-4 h-4 shrink-0" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M17.2678 10.2978L18.0388 25.009M10.2977 18.0389L18.0388 25.009L25.0089 17.268" stroke="#4A5B57" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <div id="secData" class="flex flex-wrap items-center gap-4 sm:gap-6">
+        <div class="w-56 sm:w-64">
+          <select name="data_campo"
+                  class="form-select w-full rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 pr-9 text-sm sm:text-base outline-none focus:border-teal">
+            <option value="vencimento">Data de vencimento</option>
+            <option value="competencia" {% if request.GET.data_campo == 'competencia' %}selected{% endif %}>Data de competência</option>
+            <option value="lancamento" {% if request.GET.data_campo == 'lancamento' %}selected{% endif %}>Data do lançamento</option>
+          </select>
+        </div>
+        <input type="text" id="dataInicial" name="data_inicial" autocomplete="off" placeholder="Data inicial"
+               value="{{ request.GET.data_inicial }}"
+               class="w-40 rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 text-sm sm:text-base outline-none focus:border-teal">
+        <input type="text" id="dataFinal" name="data_final" autocomplete="off" placeholder="Data final"
+               value="{{ request.GET.data_final }}"
+               class="w-40 rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 text-sm sm:text-base outline-none focus:border-teal">
+      </div>
+    </div>
+
+    <!-- Filtro por valores -->
+    <div class="mt-6">
+      <button type="button" class="secao-toggle flex items-center gap-2 text-base sm:text-lg text-[#4A5B57] tracking-wide mb-4"
+              aria-expanded="false" data-alvo="secValores"
+              data-aberta="{% if request.GET.valor_min or request.GET.valor_max %}true{% else %}false{% endif %}">
+        Filtro por valores
+        <svg class="chev w-4 h-4 shrink-0" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M17.2678 10.2978L18.0388 25.009M10.2977 18.0389L18.0388 25.009L25.0089 17.268" stroke="#4A5B57" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <div id="secValores" class="flex flex-wrap items-center gap-4 sm:gap-6">
+        <input type="text" id="valorMin" name="valor_min" inputmode="numeric" autocomplete="off" placeholder="Valor inicial"
+               value="{{ request.GET.valor_min }}"
+               class="w-44 rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 text-sm sm:text-base outline-none focus:border-teal">
+        <input type="text" id="valorMax" name="valor_max" inputmode="numeric" autocomplete="off" placeholder="Valor final"
+               value="{{ request.GET.valor_max }}"
+               class="w-44 rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 text-sm sm:text-base outline-none focus:border-teal">
+      </div>
+    </div>
+
+    <!-- Filtro por detalhes -->
+    <div class="mt-6">
+      <button type="button" class="secao-toggle flex items-center gap-2 text-base sm:text-lg text-[#4A5B57] tracking-wide mb-4"
+              aria-expanded="true" data-alvo="secDetalhes" data-aberta="true">
+        Filtro por detalhes
+        <svg class="chev w-4 h-4 shrink-0" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M17.2678 10.2978L18.0388 25.009M10.2977 18.0389L18.0388 25.009L25.0089 17.268" stroke="#4A5B57" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <div id="secDetalhes" class="flex flex-wrap items-center gap-4 sm:gap-6">
+        <input type="text" name="descricao" autocomplete="off" placeholder="Pesquisar Descrição..."
+               value="{{ request.GET.descricao }}"
+               class="w-72 sm:w-96 rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 text-sm sm:text-base outline-none focus:border-teal">
+        <input type="text" name="nota" autocomplete="off" placeholder="Núm. NOTA..."
+               value="{{ request.GET.nota }}"
+               class="w-44 rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 text-sm sm:text-base outline-none focus:border-teal">
+        <button type="submit" class="bg-teal hover:brightness-95 transition-[filter] text-white rounded-xl px-6 py-2.5 text-sm sm:text-base">Buscar</button>
+        <a href="{% url 'financeiro:lancamentos' %}" class="rounded-xl border border-[#CBD5D1] bg-white px-6 py-2.5 text-sm sm:text-base no-underline text-ink hover:bg-[#F4F7F6]">Limpar filtros</a>
+
+        <button type="button" id="btnImprimir" aria-label="Imprimir lançamentos" class="ml-auto flex items-center justify-center shrink-0">
+          <svg width="24" height="24" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M9.99992 15V3.33331H29.9999V15M9.99992 30H6.66659C5.78253 30 4.93468 29.6488 4.30956 29.0237C3.68444 28.3985 3.33325 27.5507 3.33325 26.6666V18.3333C3.33325 17.4493 3.68444 16.6014 4.30956 15.9763C4.93468 15.3512 5.78253 15 6.66659 15H33.3333C34.2173 15 35.0652 15.3512 35.6903 15.9763C36.3154 16.6014 36.6666 17.4493 36.6666 18.3333V26.6666C36.6666 27.5507 36.3154 28.3985 35.6903 29.0237C35.0652 29.6488 34.2173 30 33.3333 30H29.9999M9.99992 23.3333H29.9999V36.6666H9.99992V23.3333Z" stroke="#1E1E1E" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+  </form>
+</div>
+
+<div id="tabelaResultados" class="mt-8">
+  {% include "partials/tabela_lancamentos.html" %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/pt.js"></script>
+<script>
+  // Card de filtros: recolher/expandir tudo
+  const filtrosToggle = document.getElementById('filtrosToggle');
+  const filtrosForm = document.getElementById('filtrosForm');
+  const filtrosChevron = document.getElementById('filtrosChevron');
+
+  filtrosToggle.addEventListener('click', () => {
+    const aberto = filtrosToggle.getAttribute('aria-expanded') === 'true';
+    filtrosToggle.setAttribute('aria-expanded', String(!aberto));
+    filtrosForm.classList.toggle('hidden', aberto);
+    filtrosChevron.classList.toggle('rotated', aberto);
+  });
+
+  // Seções recolhíveis (origem, data, valores, detalhes)
+  document.querySelectorAll('.secao-toggle').forEach((btn) => {
+    const alvo = document.getElementById(btn.dataset.alvo);
+    const seta = btn.querySelector('.chev');
+
+    function aplicar(aberta) {
+      btn.setAttribute('aria-expanded', String(aberta));
+      alvo.classList.toggle('hidden', !aberta);
+      seta.classList.toggle('rotated', !aberta);
+    }
+
+    aplicar(btn.dataset.aberta === 'true');
+    btn.addEventListener('click', () => aplicar(btn.getAttribute('aria-expanded') !== 'true'));
+  });
+
+  // Valores em R$, digitando pelos centavos
+  ['valorMin', 'valorMax'].forEach((id) => {
+    const el = document.getElementById(id);
+    el.addEventListener('input', () => {
+      const digitos = el.value.replace(/\D/g, '').slice(0, 12);
+      if (!digitos) { el.value = ''; return; }
+      const numero = parseInt(digitos, 10) / 100;
+      el.value = 'R$ ' + numero.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    });
+  });
+
+  // Datas: calendário + digitação com barras automáticas
+  ['dataInicial', 'dataFinal'].forEach((id) => {
+    const el = document.getElementById(id);
+    flatpickr(el, { locale: 'pt', dateFormat: 'd/m/Y', allowInput: true });
+    el.addEventListener('input', () => {
+      const d = el.value.replace(/\D/g, '').slice(0, 8);
+      let saida = d;
+      if (d.length > 4) saida = d.slice(0, 2) + '/' + d.slice(2, 4) + '/' + d.slice(4);
+      else if (d.length > 2) saida = d.slice(0, 2) + '/' + d.slice(2);
+      el.value = saida;
+    });
+  });
+
+  document.getElementById('btnImprimir').addEventListener('click', () => window.print());
+</script>
+{% endblock %}
