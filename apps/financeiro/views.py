@@ -137,3 +137,7 @@ def lancamentos(request):
     contexto["subcentros"] = _subcentros_do_centro(request.GET.get("centro"))
     contexto["subcentro_selecionado"] = request.GET.get("subcentro")
     return render(request, "financeiro/lancamentos.html", contexto)
+
+@login_required
+def importacoes(request):
+    return render(request, "financeiro/importacoes.html")

@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Financeiro CTSul — Importação{% endblock %}
+{% block page_title %}Importação{% endblock %}
+
+{% block content %}
+<div class="w-full">
+  <div class="rounded-2xl shadow-md border border-[#E3EAE8]">
+    <div class="bg-teal rounded-t-2xl px-6 sm:px-8 py-4 sm:py-5">
+      <h2 class="text-white text-lg sm:text-xl tracking-wide">Importação de Arquivos Externos (somente arquivos .csv)</h2>
+    </div>
+
+    <div class="bg-white rounded-b-2xl px-6 sm:px-8 py-6 sm:py-8">
+
+      <div>
+        <h3 class="text-base sm:text-lg text-[#4A5B57] mb-4 tracking-wide">Caixa</h3>
+        <div class="flex flex-wrap gap-4 sm:gap-6">
+          <button type="button" data-origem="caixa_f013" class="botao-importar w-40 h-40 sm:w-48 sm:h-48 bg-teal hover:brightness-95 transition-[filter] rounded-2xl flex items-center justify-center text-center px-3">
+            <span class="text-white text-base sm:text-lg tracking-wide">Importar caixa<br>Relatório F013</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="mt-8 sm:mt-10">
+        <h3 class="text-base sm:text-lg text-[#4A5B57] mb-4 tracking-wide">Cartões</h3>
+        <div class="flex flex-wrap gap-4 sm:gap-6">
+          <button type="button" data-origem="cartoes_ctsul" class="botao-importar w-40 h-40 sm:w-48 sm:h-48 bg-teal hover:brightness-95 transition-[filter] rounded-2xl flex items-center justify-center text-center px-3">
+            <span class="text-white text-base sm:text-lg tracking-wide">Cartões CTSul</span>
+          </button>
+          <button type="button" data-origem="cartoes_rsul" class="botao-importar w-40 h-40 sm:w-48 sm:h-48 bg-teal hover:brightness-95 transition-[filter] rounded-2xl flex items-center justify-center text-center px-3">
+            <span class="text-white text-base sm:text-lg tracking-wide">Cartões RSul</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="mt-8 sm:mt-10">
+        <h3 class="text-base sm:text-lg text-[#4A5B57] mb-4 tracking-wide">Convênios</h3>
+        <div class="flex flex-wrap gap-4 sm:gap-6">
+          <button type="button" data-origem="convenios" class="botao-importar w-40 h-40 sm:w-48 sm:h-48 bg-teal hover:brightness-95 transition-[filter] rounded-2xl flex items-center justify-center text-center px-3">
+            <span class="text-white text-base sm:text-lg tracking-wide">Importar convênio</span>
+          </button>
+        </div>
+      </div>
+
+      <input type="file" id="arquivoCsvInput" accept=".csv" class="hidden">
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const arquivoCsvInput = document.getElementById('arquivoCsvInput');
+
+  document.querySelectorAll('.botao-importar').forEach((btn) => {
+    btn.addEventListener('click', () => arquivoCsvInput.click());
+  });
+</script>
+{% endblock %}
