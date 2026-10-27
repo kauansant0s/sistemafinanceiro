@@ -1,24 +1,11 @@
-from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
-from django.contrib.auth import get_user_model
-from apps.financeiro.models import Lancamento # Importe o modelo do lançamento
-from .forms import PerfilForm
-from django.contrib.auth.signals import user_logged_in, user_logged_out
-from django.dispatch import receiver
-from .models import LogAcesso
 from django.utils import timezone
 from datetime import datetime, timedelta
 from apps.financeiro.models import Lancamento
-
-@receiver(user_logged_in)
-def registrar_login(sender, request, user, **kwargs):
-    LogAcesso.objects.create(usuario=user, acao='login')
-
-@receiver(user_logged_out)
-def registrar_logout(sender, request, user, **kwargs):
-    if user:
-        LogAcesso.objects.create(usuario=user, acao='logout')
+from .forms import PerfilForm
+from .models import LogAcesso
 
 @login_required
 def perfil_view(request):
@@ -41,13 +28,16 @@ def perfil_view(request):
     if not tipos_filtro:
         tipos_filtro = ['todos']
 
-    # Converte as datas
+    # Converte as datas (com fuso)
+    tz = timezone.get_current_timezone()
     try:
-        dt_inicial = datetime.strptime(data_inicial, '%Y-%m-%d')
-        dt_final = datetime.strptime(data_final, '%Y-%m-%d').replace(hour=23, minute=59, second=59)
+        dt_inicial = timezone.make_aware(datetime.strptime(data_inicial, '%Y-%m-%d'), tz)
+        dt_final = timezone.make_aware(
+            datetime.strptime(data_final, '%Y-%m-%d').replace(hour=23, minute=59, second=59), tz
+        )
     except ValueError:
-        dt_inicial = datetime.now() - timedelta(days=30)
-        dt_final = datetime.now()
+        dt_final = timezone.now()
+        dt_inicial = dt_final - timedelta(days=30)
 
     logs = []
 
@@ -104,7 +94,7 @@ def perfil_view(request):
     logs.sort(key=lambda x: x['data_obj'], reverse=True)
     
     for log in logs:
-        log['data'] = log['data_obj'].strftime('%d/%m/%Y %H:%M')
+        log['data'] = timezone.localtime(log['data_obj']).strftime('%d/%m/%Y %H:%M')
 
     return render(request, 'accounts/perfil.html', {
         'form': form,

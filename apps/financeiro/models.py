@@ -4,15 +4,6 @@ from django.core.validators import MinValueValidator
 from django.db import models
 from simple_history.models import HistoricalRecords
 
-class Lancamento(models.Model):
-    # ... seus campos atuais ...
-    
-    # Adicione esta linha no final do modelo:
-    history = HistoricalRecords()
-
-    def __str__(self):
-        return self.descricao
-
 class Centro(models.Model):
     nome = models.CharField(max_length=50, unique=True)
 
