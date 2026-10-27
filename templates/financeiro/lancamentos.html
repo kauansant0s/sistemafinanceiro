@@ -14,8 +14,17 @@
     body { background: #fff !important; }
   }
 
-    #tabelaLancamentosBody td { vertical-align: top; }
+  #tabelaResultados tbody td { vertical-align: top; }
   .linha-aberta { background-color: #F4F7F6; }
+
+  /* Campos em modo de edição */
+  .input-edicao { border: 2px solid #58B6A2; border-radius: 8px; padding: 4px 8px; font-size: inherit; background-color: #fff; outline: none; font-family: inherit; color: #1E1E1E; transition: border-color .15s ease; }
+  .input-edicao:focus { border-color: #4A9F8D; }
+  select.input-edicao { max-width: 100%; }
+ 
+  /* Aviso rápido de que a linha foi salva */
+  @keyframes flash-salvo { from { background-color: #CFEBE4; } to { background-color: transparent; } }
+  .flash-salvo > tr { animation: flash-salvo 1.4s ease-out; }
 
   /* hambúrguer do painel de ações vira X quando aberto */
   #painelAcoesBtn[aria-expanded="true"] .line-top { transform: translateY(9px) rotate(45deg); }
@@ -415,9 +424,96 @@
     btn.addEventListener('click', fecharPainelAcoes);
   });
 
+  // ---- Edição na própria linha ----
+  // Os campos chegam por HTMX, então os eventos ficam no document (delegação).
+  document.addEventListener('input', (e) => {
+    const el = e.target;
+    if (el.classList.contains('edit-descricao')) {
+      el.value = el.value.toUpperCase();
+    } else if (el.classList.contains('edit-valor')) {
+      const digitos = el.value.replace(/\D/g, '').slice(0, 12);
+      el.value = digitos
+        ? 'R$ ' + (parseInt(digitos, 10) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+        : '';
+    } else if (el.classList.contains('edit-data')) {
+      const d = el.value.replace(/\D/g, '').slice(0, 8);
+      el.value = d.length > 4 ? d.slice(0, 2) + '/' + d.slice(2, 4) + '/' + d.slice(4)
+               : d.length > 2 ? d.slice(0, 2) + '/' + d.slice(2) : d;
+    } else if (el.classList.contains('edit-numero')) {
+      el.value = el.value.replace(/\D/g, '');
+    } else if (el.classList.contains('conta-busca')) {
+      el.closest('[data-conta-campo]').querySelector('.conta-id').value = '';  // digitou de novo: escolha anterior vale nada
+    }
+  });
+ 
+  // Calendário nos campos de data que acabaram de chegar
+  htmx.onLoad((conteudo) => {
+    conteudo.querySelectorAll('.edit-data').forEach((el) => {
+      flatpickr(el, { locale: 'pt', dateFormat: 'd/m/Y', allowInput: true });
+    });
+  });
+ 
+  // Lista de contas: mostra quando chega resultado e preenche ao clicar
+  document.body.addEventListener('htmx:afterSwap', (e) => {
+    if (e.target.classList && e.target.classList.contains('conta-resultados')) {
+      e.target.classList.toggle('hidden', e.target.textContent.trim() === '');
+    }
+  });
+ 
+  document.addEventListener('click', (e) => {
+    const opcao = e.target.closest('[data-conta-campo] .conta-opcao');
+    if (opcao) {
+      const campo = opcao.closest('[data-conta-campo]');
+      campo.querySelector('.conta-id').value = opcao.dataset.id;
+      campo.querySelector('.conta-busca').value = opcao.dataset.texto;
+      const lista = campo.querySelector('.conta-resultados');
+      lista.innerHTML = '';
+      lista.classList.add('hidden');
+      return;
+    }
+    document.querySelectorAll('.conta-resultados:not(.hidden)').forEach((lista) => {
+      if (!lista.closest('[data-conta-campo]').contains(e.target)) lista.classList.add('hidden');
+    });
+  });
+ 
+  // Enter salva e Esc cancela (Enter dentro da observação continua quebrando linha)
+  document.addEventListener('keydown', (e) => {
+    const edicao = e.target.closest && e.target.closest('tbody[data-editando]');
+    if (!edicao) return;
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      edicao.querySelector('.btn-cancelar').click();
+    } else if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+      e.preventDefault();
+      edicao.querySelector('.btn-salvar').click();
+    }
+  });
+
   // Quando a tabela é trocada (nova busca, página, ocultar receitas/despesas), a seleção recomeça
   document.body.addEventListener('htmx:afterSwap', (e) => {
     if (e.target.id === 'tabelaResultados') atualizarSelecao();
+  });
+
+  // Uma linha entrou ou saiu do modo de edição: refaz a contagem da seleção
+  // (a linha em edição não tem caixinha, então lembramos quem estava marcada para remarcar depois)
+  const marcadasAntes = new Set();
+ 
+  document.body.addEventListener('htmx:beforeSwap', (e) => {
+    const alvo = e.detail.target;
+    if (alvo.id === 'tabelaResultados') { marcadasAntes.clear(); return; }
+    const caixa = alvo.id && alvo.id.startsWith('lanc-') ? alvo.querySelector('.sel-linha') : null;
+    if (caixa) { caixa.checked ? marcadasAntes.add(alvo.id) : marcadasAntes.delete(alvo.id); }
+  });
+ 
+  document.body.addEventListener('htmx:afterSettle', () => {
+    marcadasAntes.forEach((id) => {
+      const caixa = document.querySelector('#' + id + ' .sel-linha');
+      if (caixa) { caixa.checked = true; marcadasAntes.delete(id); }
+    });
+    atualizarSelecao();
+    // Linha que acabou de entrar em edição: cursor direto na descrição
+    const campo = document.querySelector('tbody[data-editando] .edit-descricao');
+    if (campo && !campo.closest('tbody').contains(document.activeElement)) campo.focus();
   });
 </script>
 {% endblock %}

@@ -1,0 +1,64 @@
+{% load l10n %}<tbody id="lanc-{{ l.pk }}"{% if salvo %} class="flash-salvo"{% endif %}>
+<tr class="border-b border-[#E3EAE8] last:border-b-0 hover:bg-[#F4F7F6] transition-colors cursor-pointer{% if detalhe_aberto %} linha-aberta{% endif %}" data-lancamento-id="{{ l.pk }}">
+  <td class="px-4 sm:px-6 py-3 text-xs sm:text-sm text-ink">{{ l.subcentro.centro.nome }}</td>
+  <td class="px-4 sm:px-6 py-3 text-xs sm:text-sm text-ink">{{ l.subcentro.nome }}</td>          
+  <td class="px-4 sm:px-6 py-3 text-xs sm:text-sm text-ink break-words">{{ l.descricao }}</td>
+  <td class="px-4 sm:px-6 py-3 text-xs sm:text-sm text-right tabular-nums whitespace-nowrap {% if l.conta.tipo == 'R' %}text-[#15803D]{% else %}text-[#B91C1C]{% endif %}">R$ {{ l.valor|floatformat:"2g" }}</td>
+  <td class="px-4 sm:px-6 py-3 text-xs sm:text-sm text-right whitespace-nowrap text-[#B91C1C]">Não baixado</td>
+  <td class="no-print px-4 sm:px-6 py-3 text-center">
+    <span class="inline-flex items-center justify-center p-2 -m-2">
+      <input type="checkbox" class="sel-linha w-4 h-4 accent-teal cursor-pointer" aria-label="Selecionar lançamento"
+             data-valor="{{ l.valor|unlocalize }}" data-liquido="">
+    </span>
+  </td>
+  <td class="no-print px-4 sm:px-6 py-3 text-center">
+    <button type="button" class="inline-flex items-center justify-center hover:opacity-70 transition-opacity" aria-label="Editar lançamento"
+            hx-get="{% url 'financeiro:lancamento_editar' l.pk %}" hx-target="#lanc-{{ l.pk }}" hx-swap="outerHTML">
+      <svg width="20" height="20" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M25.6665 9.33332H9.33317C8.09549 9.33332 6.90851 9.82499 6.03334 10.7002C5.15817 11.5753 4.6665 12.7623 4.6665 14V46.6667C4.6665 47.9043 5.15817 49.0913 6.03334 49.9665C6.90851 50.8417 8.09549 51.3333 9.33317 51.3333H41.9998C43.2375 51.3333 44.4245 50.8417 45.2997 49.9665C46.1748 49.0913 46.6665 47.9043 46.6665 46.6667V30.3333M43.1665 5.83332C44.0948 4.90507 45.3537 4.38358 46.6665 4.38358C47.9793 4.38358 49.2382 4.90507 50.1665 5.83332C51.0948 6.76158 51.6163 8.02057 51.6163 9.33332C51.6163 10.6461 51.0948 11.9051 50.1665 12.8333L27.9998 35L18.6665 37.3333L20.9998 28L43.1665 5.83332Z"
+              stroke="#1E1E1E" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+  </td>
+</tr>
+
+<tr class="{% if not detalhe_aberto %}hidden {% endif %}bg-[#F9FBFA] border-b border-[#E3EAE8]" data-detalhe-de="{{ l.pk }}">
+  <td colspan="7" class="px-4 sm:px-6 py-5">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-4">
+
+      {% include "partials/_campo_detalhe.html" with label="Data de lançamento" valor=l.criado_em|date:"d/m/Y" %}
+      {% include "partials/_campo_detalhe.html" with label="Data de baixa" valor="" %}
+      {% include "partials/_campo_detalhe.html" with label="Competência" valor=l.data_competencia|date:"m/Y" %}
+      {% include "partials/_campo_detalhe.html" with label="Data de vencimento" valor=l.data_vencimento|date:"d/m/Y" %}
+
+      {% include "partials/_campo_detalhe.html" with label="Usuário que lançou" valor="" %}
+      {% include "partials/_campo_detalhe.html" with label="Usuário que baixou" valor="" %}
+      <div class="flex flex-col gap-0.5">
+        <span class="text-[10px] uppercase tracking-wide text-[#6B7B78]">{{ l.conta.get_tipo_display }}</span>
+        <span class="text-xs sm:text-sm text-ink">{{ l.conta.codigo }} - {{ l.conta.nome }}</span>
+      </div>
+      <div class="flex flex-col gap-0.5">
+        <span class="text-[10px] uppercase tracking-wide text-[#6B7B78]">Nota fiscal</span>
+        {% if l.nota_fiscal_ano or l.nota_fiscal_numero %}
+        <span class="text-xs sm:text-sm text-ink">{{ l.nota_fiscal_ano|default_if_none:"" }} / {{ l.nota_fiscal_numero }}</span>
+        {% else %}
+        <span class="text-xs sm:text-sm text-[#B91C1C] italic">—</span>
+        {% endif %}
+      </div>
+
+      <div class="col-span-2 sm:col-span-4">
+        {% include "partials/_campo_detalhe.html" with label="Caixa" valor="" %}
+      </div>
+
+      <div class="flex flex-col gap-0.5 col-span-2 sm:col-span-4">
+        <span class="text-[10px] uppercase tracking-wide text-[#6B7B78]">Observação</span>
+        {% if l.observacoes %}
+        <span class="text-xs sm:text-sm text-ink break-words">{{ l.observacoes }}</span>
+        {% else %}
+        <span class="text-xs sm:text-sm text-[#B91C1C] italic">—</span>
+        {% endif %}
+      </div>
+    </div>
+  </td>
+</tr>
+</tbody>

@@ -1,0 +1,125 @@
+{# Lançamento em modo de edição: troca o <tbody id="lanc-N"> inteiro (linha + detalhes) #}
+{% url 'financeiro:lancamento_editar' l.pk as url_salvar %}
+{% url 'financeiro:lancamento_linha' l.pk as url_cancelar %}
+<tbody id="lanc-{{ l.pk }}" data-editando>
+<tr class="border-b border-[#E3EAE8] bg-[#F4F7F6] align-top">
+  <td class="px-4 sm:px-6 py-3 text-xs sm:text-sm">
+    <select name="centro" class="input-edicao"
+            hx-get="{% url 'financeiro:subcentros' %}" hx-trigger="change"
+            hx-target="#edit-sub-{{ l.pk }}" hx-swap="innerHTML">
+      {% for c in form.fields.centro.queryset %}
+      <option value="{{ c.pk }}" {% if c.pk|stringformat:"s" == form.centro.value|stringformat:"s" %}selected{% endif %}>{{ c.nome }}</option>
+      {% endfor %}
+    </select>
+  </td>
+  <td class="px-4 sm:px-6 py-3 text-xs sm:text-sm">
+    <select name="subcentro" id="edit-sub-{{ l.pk }}" class="input-edicao">
+      {% include "partials/subcentro_options.html" %}
+    </select>
+    {% for e in form.subcentro.errors %}<p class="mt-1 text-[11px] text-[#8A1C1C]">{{ e }}</p>{% endfor %}
+  </td>
+  <td class="px-4 sm:px-6 py-3 text-xs sm:text-sm">
+    <input type="text" name="descricao" autocomplete="off" value="{{ form.descricao.value|default_if_none:'' }}"
+           class="input-edicao edit-descricao uppercase w-full">
+    {% for e in form.descricao.errors %}<p class="mt-1 text-[11px] text-[#8A1C1C]">{{ e }}</p>{% endfor %}
+  </td>
+  <td class="px-4 sm:px-6 py-3 text-xs sm:text-sm text-right">
+    <input type="text" name="valor" inputmode="numeric" autocomplete="off" value="{{ form.valor.value|default_if_none:'' }}"
+           class="input-edicao edit-valor text-right w-32">
+    {% for e in form.valor.errors %}<p class="mt-1 text-[11px] text-[#8A1C1C]">{{ e }}</p>{% endfor %}
+  </td>
+  <td class="px-4 sm:px-6 py-3 text-xs sm:text-sm text-right whitespace-nowrap text-[#B91C1C]">Não baixado</td>
+  <td class="no-print px-4 sm:px-6 py-3"></td>
+  <td class="no-print px-4 sm:px-6 py-3 text-center whitespace-nowrap">
+    <button type="button" class="btn-salvar inline-flex items-center justify-center hover:opacity-70 transition-opacity mr-2" aria-label="Salvar"
+            hx-post="{{ url_salvar }}" hx-include="#lanc-{{ l.pk }}" hx-target="#lanc-{{ l.pk }}" hx-swap="outerHTML">
+      <svg width="22" height="22" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M44 22.16V24C43.9975 28.3128 42.601 32.5093 40.0187 35.9636C37.4363 39.4179 33.8066 41.9449 29.6707 43.1678C25.5349 44.3906 21.1145 44.2438 17.0689 42.7491C13.0234 41.2545 9.56931 38.4922 7.22192 34.8741C4.87453 31.256 3.75958 26.9761 4.04335 22.6726C4.32712 18.3691 5.99441 14.2726 8.79656 10.9941C11.5987 7.71561 15.3856 5.43074 19.5924 4.48026C23.7992 3.52979 28.2005 3.96465 32.14 5.71997M44 7.99997L24 28.02L18 22.02"
+              stroke="#4DA342" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <button type="button" class="btn-cancelar inline-flex items-center justify-center hover:opacity-70 transition-opacity" aria-label="Cancelar edição"
+            hx-get="{{ url_cancelar }}" hx-target="#lanc-{{ l.pk }}" hx-swap="outerHTML">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M6 6L18 18M6 18L18 6" stroke="#B91C1C" stroke-width="2.5" stroke-linecap="round"/>
+      </svg>
+    </button>
+  </td>
+</tr>
+
+<tr class="bg-[#F9FBFA] border-b border-[#E3EAE8]">
+  <td colspan="7" class="px-4 sm:px-6 py-5">
+    {% if form.non_field_errors or form.conta.errors or form.data_competencia.errors or form.data_vencimento.errors or form.observacoes.errors or form.nota_fiscal_ano.errors or form.nota_fiscal_numero.errors %}
+    <div class="mb-4 rounded-xl bg-[#FBE9E9] px-4 py-3 text-sm text-[#8A1C1C]">
+      {% for e in form.non_field_errors %}<span class="block">• {{ e }}</span>{% endfor %}
+      {% for e in form.conta.errors %}<span class="block">• Receita/Despesa: {{ e }}</span>{% endfor %}
+      {% for e in form.data_competencia.errors %}<span class="block">• Competência: {{ e }}</span>{% endfor %}
+      {% for e in form.data_vencimento.errors %}<span class="block">• Vencimento: {{ e }}</span>{% endfor %}
+      {% for e in form.observacoes.errors %}<span class="block">• Observação: {{ e }}</span>{% endfor %}
+      {% for e in form.nota_fiscal_ano.errors %}<span class="block">• Ano da nota fiscal: {{ e }}</span>{% endfor %}
+      {% for e in form.nota_fiscal_numero.errors %}<span class="block">• Número da nota fiscal: {{ e }}</span>{% endfor %}
+    </div>
+    {% endif %}
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-4">
+
+      <div class="flex flex-col gap-0.5">
+        <span class="text-[10px] uppercase tracking-wide text-[#6B7B78]">Data de lançamento</span>
+        <span class="text-xs sm:text-sm text-ink">{{ l.criado_em|date:"d/m/Y" }}</span>
+      </div>
+      <div class="flex flex-col gap-0.5">
+        <span class="text-[10px] uppercase tracking-wide text-[#6B7B78]">Data de baixa</span>
+        <span class="text-xs sm:text-sm text-[#B91C1C] italic">—</span>
+      </div>
+      <div class="flex flex-col gap-0.5">
+        <span class="text-[10px] uppercase tracking-wide text-[#6B7B78]">Competência</span>
+        <input type="text" name="data_competencia" autocomplete="off" placeholder="dd/mm/aaaa"
+               value="{{ form.data_competencia.value|default_if_none:'' }}" class="input-edicao edit-data w-full">
+      </div>
+      <div class="flex flex-col gap-0.5">
+        <span class="text-[10px] uppercase tracking-wide text-[#6B7B78]">Data de vencimento</span>
+        <input type="text" name="data_vencimento" autocomplete="off" placeholder="dd/mm/aaaa"
+               value="{{ form.data_vencimento.value|default_if_none:'' }}" class="input-edicao edit-data w-full">
+      </div>
+
+      <div class="flex flex-col gap-0.5">
+        <span class="text-[10px] uppercase tracking-wide text-[#6B7B78]">Usuário que lançou</span>
+        <span class="text-xs sm:text-sm text-[#B91C1C] italic">—</span>
+      </div>
+      <div class="flex flex-col gap-0.5">
+        <span class="text-[10px] uppercase tracking-wide text-[#6B7B78]">Usuário que baixou</span>
+        <span class="text-xs sm:text-sm text-[#B91C1C] italic">—</span>
+      </div>
+
+      <div class="flex flex-col gap-0.5" data-conta-campo>
+        <span class="text-[10px] uppercase tracking-wide text-[#6B7B78]">Receita/Despesa</span>
+        <input type="text" name="q" autocomplete="off" placeholder="Digite para buscar..." class="conta-busca input-edicao w-full"
+               value="{{ conta_atual|default_if_none:'' }}"
+               hx-get="{% url 'financeiro:buscar_contas' %}" hx-trigger="input changed delay:200ms"
+               hx-target="next .conta-resultados" hx-swap="innerHTML">
+        <input type="hidden" name="conta" class="conta-id" value="{{ conta_atual.pk|default_if_none:'' }}">
+        <div class="conta-resultados hidden mt-1 bg-white border border-[#CBD5D1] rounded-lg overflow-hidden max-h-48 overflow-y-auto"></div>
+      </div>
+
+      <div class="flex flex-col gap-0.5">
+        <span class="text-[10px] uppercase tracking-wide text-[#6B7B78]">Nota fiscal</span>
+        <div class="flex items-center gap-2">
+          <input type="text" name="nota_fiscal_ano" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="Ano"
+                 value="{{ form.nota_fiscal_ano.value|default_if_none:'' }}" class="input-edicao edit-numero w-16">
+          <input type="text" name="nota_fiscal_numero" inputmode="numeric" autocomplete="off" placeholder="Número"
+                 value="{{ form.nota_fiscal_numero.value|default_if_none:'' }}" class="input-edicao edit-numero min-w-0 flex-1">
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-0.5 col-span-2 sm:col-span-4">
+        <span class="text-[10px] uppercase tracking-wide text-[#6B7B78]">Caixa</span>
+        <span class="text-xs sm:text-sm text-[#B91C1C] italic">—</span>
+      </div>
+
+      <div class="flex flex-col gap-0.5 col-span-2 sm:col-span-4">
+        <span class="text-[10px] uppercase tracking-wide text-[#6B7B78]">Observação</span>
+        <textarea name="observacoes" rows="3" class="input-edicao w-full resize-y min-h-[60px]">{{ form.observacoes.value|default_if_none:'' }}</textarea>
+      </div>
+    </div>
+  </td>
+</tr>
+</tbody>

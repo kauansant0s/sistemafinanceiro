@@ -5,11 +5,11 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db.models import Q, Sum
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.vary import vary_on_headers
-
-from .forms import FiltroLancamentosForm, LancamentoForm, normalizar
+from django.views.decorators.http import require_http_methods
+from .forms import FiltroLancamentosForm, LancamentoEdicaoForm, LancamentoForm, normalizar
 from .models import ContaFinanceira, Lancamento, SubCentro
 
 
@@ -141,3 +141,44 @@ def lancamentos(request):
 @login_required
 def importacoes(request):
     return render(request, "financeiro/importacoes.html")
+
+# ---- Edição na própria linha da lista (HTMX) ----
+
+def _lancamento_ou_404(pk):
+    return get_object_or_404(Lancamento.objects.select_related("subcentro__centro", "conta"), pk=pk)
+
+
+@login_required
+def lancamento_linha(request, pk):
+    """Mostra a linha normal (usado ao cancelar a edição)."""
+    if not request.htmx:
+        return redirect("financeiro:lancamentos")
+    return render(request, "partials/_lancamento.html", {"l": _lancamento_ou_404(pk), "detalhe_aberto": True})
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def lancamento_editar(request, pk):
+    """GET: linha em modo de edição. POST: salva; se algo estiver errado, volta a edição com os avisos."""
+    if not request.htmx:
+        return redirect("financeiro:lancamentos")
+    l = _lancamento_ou_404(pk)
+
+    if request.method == "POST":
+        form = LancamentoEdicaoForm(request.POST, instance=l)
+        if form.is_valid():
+            form.save()
+            l = _lancamento_ou_404(pk)
+            return render(request, "partials/_lancamento.html", {"l": l, "detalhe_aberto": True, "salvo": True})
+    else:
+        form = LancamentoEdicaoForm(instance=l)
+
+    conta_id = str(form["conta"].value() or "")
+    conta_atual = ContaFinanceira.objects.filter(pk=conta_id).first() if conta_id.isdigit() else None
+    return render(request, "partials/_lancamento_edicao.html", {
+        "l": _lancamento_ou_404(pk),
+        "form": form,
+        "subcentros": _subcentros_do_centro(form["centro"].value()),
+        "subcentro_selecionado": form["subcentro"].value(),
+        "conta_atual": conta_atual,
+    })

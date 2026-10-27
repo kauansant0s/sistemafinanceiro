@@ -45,6 +45,31 @@ class LancamentoForm(forms.ModelForm):
             self.add_error("subcentro", "Este sub-centro não pertence ao centro escolhido.")
         return dados
 
+def formatar_brl(valor):
+    """Decimal('1234.5') -> 'R$ 1.234,50' (mesmo formato da máscara dos campos de valor)."""
+    texto = f"{valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    return f"R$ {texto}"
+
+
+class LancamentoEdicaoForm(LancamentoForm):
+    """Edição direto na linha da lista. Não mexe na nota fiscal."""
+
+    class Meta(LancamentoForm.Meta):
+        fields = [
+            "centro", "subcentro", "conta", "descricao", "observacoes",
+            "nota_fiscal_ano", "nota_fiscal_numero",
+            "valor", "data_competencia", "data_vencimento",
+        ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        l = self.instance
+        # Uma conta que foi desativada depois continua valendo para quem já a usa
+        self.fields["conta"].queryset = ContaFinanceira.objects.filter(ativa=True) | ContaFinanceira.objects.filter(pk=l.conta_id)
+        self.initial["centro"] = l.subcentro.centro_id
+        self.initial["valor"] = formatar_brl(l.valor)
+        self.initial["data_competencia"] = l.data_competencia.strftime("%d/%m/%Y")
+        self.initial["data_vencimento"] = l.data_vencimento.strftime("%d/%m/%Y")
 
 def normalizar(texto):
     """Minúsculas e sem acento, para a busca achar 'convenio' em 'Convênio'."""

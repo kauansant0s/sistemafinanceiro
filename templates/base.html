@@ -51,7 +51,7 @@
 
 {% block extra_head %}{% endblock %}
 </head>
-<body class="bg-[#F4F7F6] text-ink min-h-full">
+<body class="bg-[#F4F7F6] text-ink min-h-full" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
 
 <header class="sticky top-0 z-20 bg-teal" style="padding-top: env(safe-area-inset-top, 0px);">
     <div class="max-w-[1440px] mx-auto flex items-center gap-4 sm:gap-7 pl-3 sm:pl-4 pr-4 sm:pr-8 py-3 sm:py-4">
