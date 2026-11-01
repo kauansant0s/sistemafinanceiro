@@ -28,7 +28,11 @@
            class="input-edicao edit-valor text-right w-32">
     {% for e in form.valor.errors %}<p class="mt-1 text-[11px] text-[#8A1C1C]">{{ e }}</p>{% endfor %}
   </td>
+  {% if l.data_baixa %}
+  <td class="px-4 sm:px-6 py-3 text-xs sm:text-sm text-right tabular-nums whitespace-nowrap">R$ {{ l.liquido|floatformat:"2g" }}</td>
+  {% else %}
   <td class="px-4 sm:px-6 py-3 text-xs sm:text-sm text-right whitespace-nowrap text-[#B91C1C]">Não baixado</td>
+  {% endif %}
   <td class="no-print px-4 sm:px-6 py-3"></td>
   <td class="no-print px-4 sm:px-6 py-3 text-center whitespace-nowrap">
     <button type="button" class="btn-salvar inline-flex items-center justify-center hover:opacity-70 transition-opacity mr-2" aria-label="Salvar"
@@ -68,7 +72,7 @@
       </div>
       <div class="flex flex-col gap-0.5">
         <span class="text-[10px] uppercase tracking-wide text-[#6B7B78]">Data de baixa</span>
-        <span class="text-xs sm:text-sm text-[#B91C1C] italic">—</span>
+        {% if l.data_baixa %}<span class="text-xs sm:text-sm text-ink">{{ l.data_baixa|date:"d/m/Y" }}</span>{% else %}<span class="text-xs sm:text-sm text-[#B91C1C] italic">—</span>{% endif %}
       </div>
       <div class="flex flex-col gap-0.5">
         <span class="text-[10px] uppercase tracking-wide text-[#6B7B78]">Competência</span>
@@ -87,7 +91,7 @@
       </div>
       <div class="flex flex-col gap-0.5">
         <span class="text-[10px] uppercase tracking-wide text-[#6B7B78]">Usuário que baixou</span>
-        <span class="text-xs sm:text-sm text-[#B91C1C] italic">—</span>
+        {% if l.baixado_por %}<span class="text-xs sm:text-sm text-ink">{{ l.baixado_por.nome_completo|default:l.baixado_por.username }}</span>{% else %}<span class="text-xs sm:text-sm text-[#B91C1C] italic">—</span>{% endif %}
       </div>
 
       <div class="flex flex-col gap-0.5" data-conta-campo>
@@ -110,9 +114,13 @@
         </div>
       </div>
 
-      <div class="flex flex-col gap-0.5 col-span-2 sm:col-span-4">
+      <div class="flex flex-col gap-0.5 col-span-2">
         <span class="text-[10px] uppercase tracking-wide text-[#6B7B78]">Caixa</span>
-        <span class="text-xs sm:text-sm text-[#B91C1C] italic">—</span>
+        {% if l.caixa %}<span class="text-xs sm:text-sm text-ink">{{ l.caixa.nome }}</span>{% else %}<span class="text-xs sm:text-sm text-[#B91C1C] italic">—</span>{% endif %}
+      </div>
+      <div class="flex flex-col gap-0.5 col-span-2">
+        <span class="text-[10px] uppercase tracking-wide text-[#6B7B78]">Forma de baixa</span>
+        {% if l.forma_baixa %}<span class="text-xs sm:text-sm text-ink">{{ l.forma_baixa.nome }}</span>{% else %}<span class="text-xs sm:text-sm text-[#B91C1C] italic">—</span>{% endif %}
       </div>
 
       <div class="flex flex-col gap-0.5 col-span-2 sm:col-span-4">

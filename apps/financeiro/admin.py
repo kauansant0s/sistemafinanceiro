@@ -1,8 +1,6 @@
 from django.contrib import admin
 from simple_history.admin import SimpleHistoryAdmin
-
-from .models import Centro, ContaFinanceira, Lancamento, SubCentro
-
+from .models import Caixa, Centro, ContaFinanceira, FormaBaixa, Lancamento, SubCentro
 
 @admin.register(Centro)
 class CentroAdmin(admin.ModelAdmin):
@@ -28,3 +26,14 @@ class LancamentoAdmin(SimpleHistoryAdmin):
     list_filter = ("subcentro__centro", "subcentro", "conta__tipo")
     search_fields = ("descricao", "nota_fiscal_numero")
     date_hierarchy = "data_vencimento"
+
+@admin.register(Caixa)
+class CaixaAdmin(admin.ModelAdmin):
+    list_display = ("nome", "ativo")
+    list_filter = ("ativo",)
+
+
+@admin.register(FormaBaixa)
+class FormaBaixaAdmin(admin.ModelAdmin):
+    list_display = ("nome", "ativo")
+    list_filter = ("ativo",)

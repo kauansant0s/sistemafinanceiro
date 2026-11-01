@@ -198,7 +198,7 @@
 
     <div id="painelAcoesMenu" class="hidden absolute bottom-full right-0 mb-3 bg-white border border-[#E3EAE8] rounded-xl shadow-md overflow-hidden min-w-[220px]">
 
-      <button type="button" class="painel-acao w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#F4F7F6] transition-colors cursor-pointer">
+      <button type="button" id="acaoBaixar" class="painel-acao w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#F4F7F6] transition-colors cursor-pointer">
         <svg class="w-5 h-5 shrink-0" viewBox="0 0 50 50" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M25.0002 33.3333L14.5835 22.9166L17.5002 19.8958L22.9168 25.3125V8.33331H27.0835V25.3125L32.5002 19.8958L35.4168 22.9166L25.0002 33.3333ZM12.5002 41.6666C11.3543 41.6666 10.3734 41.2587 9.55745 40.4427C8.74148 39.6267 8.3335 38.6458 8.3335 37.5V31.25H12.5002V37.5H37.5002V31.25H41.6668V37.5C41.6668 38.6458 41.2588 39.6267 40.4429 40.4427C39.6269 41.2587 38.646 41.6666 37.5002 41.6666H12.5002Z" stroke="#1E1E1E" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
@@ -234,7 +234,7 @@
         <span class="text-sm sm:text-base text-ink">Editar caixa</span>
       </button>
 
-      <button type="button" class="painel-acao w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#F4F7F6] transition-colors cursor-pointer border-t border-[#E3EAE8]">
+      <button type="button" id="acaoExcluir" class="painel-acao w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#F4F7F6] transition-colors cursor-pointer border-t border-[#E3EAE8]">
         <svg class="w-5 h-5 shrink-0" viewBox="0 0 50 50" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M6.25 12.5H10.4167M10.4167 12.5H43.75M10.4167 12.5V41.6667C10.4167 42.7718 10.8557 43.8316 11.6371 44.613C12.4185 45.3944 13.4783 45.8334 14.5833 45.8334H35.4167C36.5217 45.8334 37.5815 45.3944 38.3629 44.613C39.1443 43.8316 39.5833 42.7718 39.5833 41.6667V12.5M16.6667 12.5V8.33335C16.6667 7.22829 17.1057 6.16848 17.8871 5.38708C18.6685 4.60567 19.7283 4.16669 20.8333 4.16669H29.1667C30.2717 4.16669 31.3315 4.60567 32.1129 5.38708C32.8943 6.16848 33.3333 7.22829 33.3333 8.33335V12.5" stroke="#1E1E1E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
@@ -242,6 +242,116 @@
       </button>
     </div>
   </div>
+</div>
+
+<!-- Baixa de lançamentos -->
+<div id="modalBaixa" class="no-print hidden fixed inset-0 z-40 flex items-center justify-center px-4 bg-black/40 backdrop-blur-sm"
+     role="dialog" aria-modal="true" aria-labelledby="modalBaixaTitulo">
+  <div class="w-full max-w-xl max-h-[90vh] overflow-y-auto bg-white rounded-2xl shadow-lg border border-[#E3EAE8] p-6 sm:p-7">
+    <div class="flex items-start gap-4">
+      <span class="shrink-0 w-11 h-11 rounded-full bg-[#E3F4F0] flex items-center justify-center">
+        <svg class="w-5 h-5" viewBox="0 0 50 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M25.0002 33.3333L14.5835 22.9166L17.5002 19.8958L22.9168 25.3125V8.33331H27.0835V25.3125L32.5002 19.8958L35.4168 22.9166L25.0002 33.3333ZM12.5002 41.6666C11.3543 41.6666 10.3734 41.2587 9.55745 40.4427C8.74148 39.6267 8.3335 38.6458 8.3335 37.5V31.25H12.5002V37.5H37.5002V31.25H41.6668V37.5C41.6668 38.6458 41.2588 39.6267 40.4429 40.4427C39.6269 41.2587 38.646 41.6666 37.5002 41.6666H12.5002Z" stroke="#2F7D6B" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span>
+      <div class="min-w-0">
+        <h2 id="modalBaixaTitulo" class="text-lg sm:text-xl text-ink">Baixar lançamentos</h2>
+        <p id="modalBaixaResumo" class="mt-1 text-sm sm:text-base text-[#4A5B57]"></p>
+      </div>
+    </div>
+
+    <form id="formBaixa" hx-post="{% url 'financeiro:baixar_lancamentos' %}" hx-target="#baixaErros" hx-swap="innerHTML" class="mt-5">
+      <div id="baixaIds"></div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+        <div>
+          <label for="baixaCaixa" class="block text-sm sm:text-base mb-2">Caixa</label>
+          <select id="baixaCaixa" name="caixa" class="form-select w-full rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 text-sm sm:text-base outline-none focus:border-teal" data-novo>
+            {% include "partials/opcoes_select.html" with objetos=caixas rotulo_novo="Criar novo caixa..." %}
+          </select>
+          <div class="novo-campo hidden mt-2 flex items-center gap-2">
+            <input type="text" name="novo_caixa" maxlength="60" autocomplete="off" placeholder="Nome do novo caixa"
+                   class="min-w-0 flex-1 rounded-xl border border-[#CBD5D1] bg-white px-3 py-2 text-sm outline-none focus:border-teal">
+            <button type="button" hx-post="{% url 'financeiro:criar_caixa' %}" hx-include="closest .novo-campo"
+                    hx-target="#baixaCaixa" hx-swap="innerHTML"
+                    class="rounded-xl bg-teal hover:brightness-95 transition-[filter] text-white px-4 py-2 text-sm">Criar</button>
+          </div>
+        </div>
+        <div>
+          <label for="baixaForma" class="block text-sm sm:text-base mb-2">Forma de baixa</label>
+          <select id="baixaForma" name="forma_baixa" class="form-select w-full rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 text-sm sm:text-base outline-none focus:border-teal" data-novo>
+            {% include "partials/opcoes_select.html" with objetos=formas_baixa rotulo_novo="Criar nova forma de baixa..." %}
+          </select>
+          <div class="novo-campo hidden mt-2 flex items-center gap-2">
+            <input type="text" name="novo_forma" maxlength="60" autocomplete="off" placeholder="Nome da nova forma"
+                   class="min-w-0 flex-1 rounded-xl border border-[#CBD5D1] bg-white px-3 py-2 text-sm outline-none focus:border-teal">
+            <button type="button" hx-post="{% url 'financeiro:criar_forma_baixa' %}" hx-include="closest .novo-campo"
+                    hx-target="#baixaForma" hx-swap="innerHTML"
+                    class="rounded-xl bg-teal hover:brightness-95 transition-[filter] text-white px-4 py-2 text-sm">Criar</button>
+          </div>
+        </div>
+        <div>
+          <label for="baixaData" class="block text-sm sm:text-base mb-2">Data de baixa</label>
+          <input type="text" id="baixaData" name="data_baixa" autocomplete="off" placeholder="dd/mm/aaaa"
+                 class="edit-data w-full rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 text-sm sm:text-base outline-none focus:border-teal">
+        </div>
+      </div>
+
+      <p class="mt-5 mb-2 text-sm sm:text-base">Valor líquido</p>
+      <ul id="baixaLista" class="max-h-60 overflow-y-auto rounded-xl bg-[#F4F7F6] px-4 py-3 space-y-3"></ul>
+
+      <div id="baixaErros"></div>
+
+      <div class="mt-6 flex justify-end gap-3">
+        <button type="button" id="modalBaixaCancelar"
+                class="rounded-xl border border-[#CBD5D1] bg-white px-6 py-2.5 text-sm sm:text-base text-ink hover:bg-[#F4F7F6]">Cancelar</button>
+        <button type="submit"
+                class="rounded-xl bg-teal hover:brightness-95 transition-[filter] text-white px-6 py-2.5 text-sm sm:text-base">Baixar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Confirmação de exclusão -->
+<div id="modalExcluir" class="no-print hidden fixed inset-0 z-40 flex items-center justify-center px-4 bg-black/40 backdrop-blur-sm"
+     role="dialog" aria-modal="true" aria-labelledby="modalExcluirTitulo">
+  <div class="w-full max-w-md bg-white rounded-2xl shadow-lg border border-[#E3EAE8] p-6 sm:p-7">
+    <div class="flex items-start gap-4">
+      <span class="shrink-0 w-11 h-11 rounded-full bg-[#FBE9E9] flex items-center justify-center">
+        <svg class="w-5 h-5" viewBox="0 0 50 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M6.25 12.5H10.4167M10.4167 12.5H43.75M10.4167 12.5V41.6667C10.4167 42.7718 10.8557 43.8316 11.6371 44.613C12.4185 45.3944 13.4783 45.8334 14.5833 45.8334H35.4167C36.5217 45.8334 37.5815 45.3944 38.3629 44.613C39.1443 43.8316 39.5833 42.7718 39.5833 41.6667V12.5M16.6667 12.5V8.33335C16.6667 7.22829 17.1057 6.16848 17.8871 5.38708C18.6685 4.60567 19.7283 4.16669 20.8333 4.16669H29.1667C30.2717 4.16669 31.3315 4.60567 32.1129 5.38708C32.8943 6.16848 33.3333 7.22829 33.3333 8.33335V12.5" stroke="#B91C1C" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span>
+      <div class="min-w-0">
+        <h2 id="modalExcluirTitulo" class="text-lg sm:text-xl text-ink">Excluir lançamentos?</h2>
+        <p id="modalExcluirResumo" class="mt-2 text-sm sm:text-base text-[#4A5B57]"></p>
+      </div>
+    </div>
+
+    <ul id="modalExcluirLista" class="mt-4 max-h-40 overflow-y-auto rounded-xl bg-[#F4F7F6] px-4 py-3 text-xs sm:text-sm text-ink space-y-1"></ul>
+
+    <p class="mt-4 text-xs sm:text-sm text-[#6B7B78]">Esta ação não pode ser desfeita pela tela. A exclusão fica registrada no histórico.</p>
+
+    <form id="formExcluir" hx-post="{% url 'financeiro:excluir_lancamentos' %}" hx-swap="none">
+      <div id="modalExcluirIds"></div>
+      <div class="mt-6 flex justify-end gap-3">
+        <button type="button" id="modalExcluirCancelar"
+                class="rounded-xl border border-[#CBD5D1] bg-white px-6 py-2.5 text-sm sm:text-base text-ink hover:bg-[#F4F7F6]">Cancelar</button>
+        <button type="submit"
+                class="rounded-xl bg-[#B91C1C] hover:brightness-95 transition-[filter] text-white px-6 py-2.5 text-sm sm:text-base">Excluir</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Aviso rápido -->
+<div id="toast" role="status" data-desfazer-url="{% url 'financeiro:desfazer_exclusao' %}"
+    class="no-print hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 rounded-xl bg-ink text-white px-5 py-3 text-sm sm:text-base shadow-lg">
+  <span id="toastTexto"></span>
+  <button type="button" id="toastDesfazer" class="hidden underline underline-offset-2 hover:opacity-80 cursor-pointer">Desfazer</button>
+  <svg id="toastTimer" class="hidden w-5 h-5 shrink-0 -rotate-90" viewBox="0 0 20 20" aria-hidden="true">
+    <circle id="toastTimerCirculo" cx="10" cy="10" r="5" fill="none" stroke="#FFFFFF" stroke-width="10" stroke-dasharray="31.416" stroke-dashoffset="0"/>
+  </svg>
 </div>
 {% endblock %}
 
@@ -422,6 +532,232 @@
 
   document.querySelectorAll('.painel-acao').forEach((btn) => {
     btn.addEventListener('click', fecharPainelAcoes);
+  });
+
+    // ---- Excluir os lançamentos marcados ----
+  const modalExcluir = document.getElementById('modalExcluir');
+  const formExcluir = document.getElementById('formExcluir');
+    const toast = document.getElementById('toast');
+  const toastTexto = document.getElementById('toastTexto');
+  const toastDesfazer = document.getElementById('toastDesfazer');
+  const toastTimer = document.getElementById('toastTimer');
+  const toastCirculo = document.getElementById('toastTimerCirculo');
+  let toastTimeout = null;
+  let toastAnimacao = null;
+  let idsParaDesfazer = [];
+
+  // Aviso rápido. Com { desfazer: true } mostra o "Desfazer" e o círculo que esvazia em 5 segundos.
+  function mostrarToast(texto, { desfazer = false } = {}) {
+    const duracao = desfazer ? 5000 : 3500;
+    toastTexto.textContent = texto;
+    toastDesfazer.classList.toggle('hidden', !desfazer);
+    toastTimer.classList.toggle('hidden', !desfazer);
+    toast.classList.remove('hidden');
+
+    if (toastAnimacao) toastAnimacao.cancel();
+    if (desfazer) {
+      toastAnimacao = toastCirculo.animate(
+        [{ strokeDashoffset: 0 }, { strokeDashoffset: 31.416 }],
+        { duration: duracao, easing: 'linear', fill: 'forwards' }
+      );
+    }
+    clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => { toast.classList.add('hidden'); idsParaDesfazer = []; }, duracao);
+  }
+
+  toastDesfazer.addEventListener('click', () => {
+    const ids = idsParaDesfazer;
+    idsParaDesfazer = [];
+    clearTimeout(toastTimeout);
+    toast.classList.add('hidden');
+    if (ids.length === 0) return;
+    htmx.ajax('POST', toast.dataset.desfazerUrl, { target: '#toast', swap: 'none', values: { ids } });
+  });
+
+  function fecharModalExcluir() {
+    modalExcluir.classList.add('hidden');
+  }
+
+  function abrirModalExcluir() {
+    const marcadas = Array.from(resultados.querySelectorAll('.sel-linha:checked'));
+    if (marcadas.length === 0) return;
+    if (marcadas.some((cb) => cb.dataset.liquido)) {
+      mostrarToast('Lançamentos baixados não podem ser excluídos. Desmarque-os.');
+      return;
+    }
+
+    let total = 0;
+    const lista = document.getElementById('modalExcluirLista');
+    const ids = document.getElementById('modalExcluirIds');
+    lista.innerHTML = '';
+    ids.innerHTML = '';
+
+    marcadas.forEach((cb, i) => {
+      total += Math.round(parseFloat(cb.dataset.valor) * 100);
+      const entrada = document.createElement('input');
+      entrada.type = 'hidden';
+      entrada.name = 'ids';
+      entrada.value = cb.dataset.id;
+      ids.appendChild(entrada);
+
+      if (i < 5) {
+        const item = document.createElement('li');
+        item.className = 'break-words';
+        item.textContent = cb.closest('tr').children[2].textContent.trim();  // coluna Descrição
+        lista.appendChild(item);
+      }
+    });
+    if (marcadas.length > 5) {
+      const mais = document.createElement('li');
+      mais.className = 'text-[#6B7B78]';
+      mais.textContent = 'e mais ' + (marcadas.length - 5) + '…';
+      lista.appendChild(mais);
+    }
+
+    document.getElementById('modalExcluirResumo').textContent = marcadas.length === 1
+      ? 'Você vai excluir 1 lançamento, no valor de ' + formatarBRL(total) + '.'
+      : 'Você vai excluir ' + marcadas.length + ' lançamentos, somando ' + formatarBRL(total) + ' (valor bruto).';
+
+    modalExcluir.classList.remove('hidden');
+    document.getElementById('modalExcluirCancelar').focus();  // o foco começa no lado seguro
+  }
+
+  document.getElementById('acaoExcluir').addEventListener('click', abrirModalExcluir);
+  document.getElementById('modalExcluirCancelar').addEventListener('click', fecharModalExcluir);
+  modalExcluir.addEventListener('click', (e) => { if (e.target === modalExcluir) fecharModalExcluir(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !modalExcluir.classList.contains('hidden')) fecharModalExcluir();
+  });
+
+  // Excluiu: fecha o modal, recarrega a mesma busca e avisa
+  document.body.addEventListener('lancamentosExcluidos', (e) => {
+    fecharModalExcluir();
+    const qtd = (e.detail && e.detail.qtd) || 0;
+    idsParaDesfazer = (e.detail && e.detail.ids) || [];
+    htmx.ajax('GET', location.pathname + location.search, { target: '#tabelaResultados', swap: 'innerHTML' });
+    mostrarToast(qtd === 1 ? '1 lançamento excluído.' : qtd + ' lançamentos excluídos.', { desfazer: qtd > 0 });
+  });
+
+  // Desfez: recarrega a busca para os lançamentos voltarem à lista
+  document.body.addEventListener('lancamentosRestaurados', (e) => {
+    const qtd = (e.detail && e.detail.qtd) || 0;
+    htmx.ajax('GET', location.pathname + location.search, { target: '#tabelaResultados', swap: 'innerHTML' });
+    mostrarToast(qtd === 0 ? 'Não foi possível desfazer.' : qtd === 1 ? '1 lançamento restaurado.' : qtd + ' lançamentos restaurados.');
+  });
+
+  formExcluir.addEventListener('htmx:responseError', () => {
+    fecharModalExcluir();
+    mostrarToast('Não foi possível excluir. Tente de novo.');
+  });
+
+    // ---- Baixar os lançamentos marcados ----
+  const modalBaixa = document.getElementById('modalBaixa');
+  const baixaErros = document.getElementById('baixaErros');
+
+  function fecharModalBaixa() {
+    modalBaixa.classList.add('hidden');
+  }
+
+  function abrirModalBaixa() {
+    const marcadas = Array.from(resultados.querySelectorAll('.sel-linha:checked'));
+    const pendentes = marcadas.filter((cb) => !cb.dataset.liquido);  // quem já tem líquido já foi baixado
+    if (pendentes.length === 0) {
+      mostrarToast('Os lançamentos selecionados já estão baixados.');
+      return;
+    }
+
+    const lista = document.getElementById('baixaLista');
+    const ids = document.getElementById('baixaIds');
+    lista.innerHTML = '';
+    ids.innerHTML = '';
+    baixaErros.innerHTML = '';
+
+    pendentes.forEach((cb) => {
+      const entrada = document.createElement('input');
+      entrada.type = 'hidden';
+      entrada.name = 'ids';
+      entrada.value = cb.dataset.id;
+      ids.appendChild(entrada);
+
+      const centavos = Math.round(parseFloat(cb.dataset.valor) * 100);
+      const item = document.createElement('li');
+      item.className = 'flex items-center justify-between gap-3';
+
+      const texto = document.createElement('div');
+      texto.className = 'min-w-0 text-xs sm:text-sm text-ink';
+      const nome = document.createElement('p');
+      nome.className = 'break-words';
+      nome.textContent = cb.closest('tr').children[2].textContent.trim();  // coluna Descrição
+      const bruto = document.createElement('p');
+      bruto.className = 'text-[#6B7B78]';
+      bruto.textContent = 'Bruto: ' + formatarBRL(centavos);
+      texto.appendChild(nome);
+      texto.appendChild(bruto);
+
+      const campo = document.createElement('input');
+      campo.type = 'text';
+      campo.name = 'liquido_' + cb.dataset.id;
+      campo.inputMode = 'numeric';
+      campo.autocomplete = 'off';
+      campo.className = 'edit-valor w-36 shrink-0 text-right rounded-xl border border-[#CBD5D1] bg-white px-3 py-2 text-sm outline-none focus:border-teal';
+      campo.value = 'R$ ' + (centavos / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+      item.appendChild(texto);
+      item.appendChild(campo);
+      lista.appendChild(item);
+    });
+
+    const ignorados = marcadas.length - pendentes.length;
+    document.getElementById('modalBaixaResumo').textContent =
+      (pendentes.length === 1 ? '1 lançamento.' : pendentes.length + ' lançamentos.') +
+      (ignorados ? ' ' + ignorados + (ignorados === 1 ? ' já baixado ficou de fora.' : ' já baixados ficaram de fora.') : '');
+
+    const data = document.getElementById('baixaData');
+    if (data._flatpickr) data._flatpickr.setDate(new Date(), true);
+    else data.value = new Date().toLocaleDateString('pt-BR');
+
+    modalBaixa.classList.remove('hidden');
+    document.getElementById('baixaCaixa').focus();
+  }
+
+  document.getElementById('acaoBaixar').addEventListener('click', abrirModalBaixa);
+  document.getElementById('modalBaixaCancelar').addEventListener('click', fecharModalBaixa);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !modalBaixa.classList.contains('hidden')) fecharModalBaixa();
+  });
+
+  // "+ Criar ..." no select abre o campo para digitar o nome; outra escolha fecha
+  modalBaixa.addEventListener('change', (e) => {
+    if (!e.target.matches('select[data-novo]')) return;
+    const novo = e.target.parentElement.querySelector('.novo-campo');
+    const criar = e.target.value === '__novo__';
+    novo.classList.toggle('hidden', !criar);
+    if (criar) novo.querySelector('input').focus();
+  });
+
+  // Enter no nome novo cria (e não envia a baixa)
+  modalBaixa.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && e.target.matches('.novo-campo input')) {
+      e.preventDefault();
+      e.target.closest('.novo-campo').querySelector('button').click();
+    }
+  });
+
+  // Criou: o select já voltou com o item novo escolhido; esconde o campo de nome
+  document.body.addEventListener('htmx:afterSwap', (e) => {
+    if (e.target.matches && e.target.matches('#baixaCaixa, #baixaForma')) {
+      const novo = e.target.parentElement.querySelector('.novo-campo');
+      novo.classList.add('hidden');
+      novo.querySelector('input').value = '';
+    }
+  });
+
+  // Baixou: fecha o modal, recarrega a mesma busca e avisa
+  document.body.addEventListener('lancamentosBaixados', (e) => {
+    fecharModalBaixa();
+    const qtd = (e.detail && e.detail.qtd) || 0;
+    htmx.ajax('GET', location.pathname + location.search, { target: '#tabelaResultados', swap: 'innerHTML' });
+    mostrarToast(qtd === 1 ? '1 lançamento baixado.' : qtd + ' lançamentos baixados.');
   });
 
   // ---- Edição na própria linha ----

@@ -1,5 +1,4 @@
 from decimal import Decimal
-
 from django.urls import reverse
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -8,10 +7,14 @@ from django.db.models import Q, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.vary import vary_on_headers
-from django.views.decorators.http import require_http_methods
-from .forms import FiltroLancamentosForm, LancamentoEdicaoForm, LancamentoForm, normalizar
-from .models import ContaFinanceira, Lancamento, SubCentro
-
+from django.views.decorators.http import require_http_methods, require_POST
+from .forms import BaixaForm, FiltroLancamentosForm, LancamentoEdicaoForm, LancamentoForm, _valor_br, normalizar
+from .models import Caixa, ContaFinanceira, FormaBaixa, Lancamento, SubCentro
+import json
+from django.db import transaction
+from django.http import HttpResponse
+from datetime import timedelta
+from django.core.exceptions import ValidationError
 
 def _subcentros_do_centro(centro_id):
     if centro_id and str(centro_id).isdigit():
@@ -134,6 +137,8 @@ def lancamentos(request):
     if request.htmx and not request.htmx.history_restore_request:
         return render(request, "partials/tabela_lancamentos.html", contexto)
 
+    contexto["caixas"] = Caixa.objects.filter(ativo=True)
+    contexto["formas_baixa"] = FormaBaixa.objects.filter(ativo=True)
     contexto["subcentros"] = _subcentros_do_centro(request.GET.get("centro"))
     contexto["subcentro_selecionado"] = request.GET.get("subcentro")
     return render(request, "financeiro/lancamentos.html", contexto)
@@ -182,3 +187,118 @@ def lancamento_editar(request, pk):
         "subcentro_selecionado": form["subcentro"].value(),
         "conta_atual": conta_atual,
     })
+
+@login_required
+@require_POST
+def excluir_lancamentos(request):
+    """Exclui os lançamentos marcados na lista. O histórico (simple-history) guarda quem excluiu."""
+    ids = [i for i in request.POST.getlist("ids") if i.isdigit()]
+    excluidos = []
+    with transaction.atomic():
+        # um a um, para o histórico registrar cada exclusão
+        for l in Lancamento.objects.filter(pk__in=ids, data_baixa__isnull=True):  # baixados não se excluem
+            excluidos.append(l.pk)
+            l.delete()
+    resposta = HttpResponse(status=204)
+    resposta["HX-Trigger"] = json.dumps({"lancamentosExcluidos": {"qtd": len(excluidos), "ids": excluidos}})
+    return resposta
+
+
+@login_required
+@require_POST
+def desfazer_exclusao(request):
+    """Recria, a partir do histórico, lançamentos que o próprio usuário acabou de excluir."""
+    ids = [int(i) for i in request.POST.getlist("ids") if i.isdigit()]
+    limite = timezone.now() - timedelta(minutes=2)  # só dá para desfazer o que acabou de acontecer
+    qtd = 0
+    with transaction.atomic():
+        for pk in ids:
+            if Lancamento.objects.filter(pk=pk).exists():
+                continue
+            registro = (
+                Lancamento.history
+                .filter(id=pk, history_type="-", history_user=request.user, history_date__gte=limite)
+                .order_by("-history_date").first()
+            )
+            if registro is None:
+                continue
+            registro.instance.save()
+            # o save() grava "criado em" com a hora de agora; devolve a data original
+            Lancamento.objects.filter(pk=pk).update(criado_em=registro.criado_em)
+            qtd += 1
+    resposta = HttpResponse(status=204)
+    resposta["HX-Trigger"] = json.dumps({"lancamentosRestaurados": {"qtd": qtd}})
+    return resposta
+
+# ---- Baixa de lançamentos ----
+
+def _opcoes_com_novo(request, modelo, rotulo_novo, campo):
+    """Cria o item digitado (ou reaproveita o que já existe com o mesmo nome) e devolve as <option> do select."""
+    nome = " ".join(request.POST.get(campo, "").split())
+    novo = None
+    if nome:
+        novo = modelo.objects.filter(nome__iexact=nome).first()
+        if novo is None:
+            novo = modelo.objects.create(nome=nome)
+        elif not novo.ativo:
+            novo.ativo = True
+            novo.save(update_fields=["ativo"])
+    return render(request, "partials/opcoes_select.html", {
+        "objetos": modelo.objects.filter(ativo=True),
+        "selecionado_id": novo.pk if novo else None,
+        "rotulo_novo": rotulo_novo,
+    })
+
+
+@login_required
+@require_POST
+def criar_caixa(request):
+    return _opcoes_com_novo(request, Caixa, "Criar novo caixa...", "novo_caixa")
+
+
+@login_required
+@require_POST
+def criar_forma_baixa(request):
+    return _opcoes_com_novo(request, FormaBaixa, "Criar nova forma de baixa...", "novo_forma")
+
+
+@login_required
+@require_POST
+def baixar_lancamentos(request):
+    """Baixa os lançamentos marcados. Erros voltam como HTML para a caixa de avisos do modal."""
+    form = BaixaForm(request.POST)
+    ids = [int(i) for i in request.POST.getlist("ids") if i.isdigit()]
+    lancamentos = list(Lancamento.objects.filter(pk__in=ids, data_baixa__isnull=True))
+    erros = []
+
+    if not lancamentos:
+        erros.append("Nenhum lançamento para baixar (os já baixados são ignorados).")
+    for campo_erros in form.errors.values():
+        erros.extend(campo_erros)
+
+    liquidos = {}
+    for l in lancamentos:
+        try:
+            valor = _valor_br(request.POST.get(f"liquido_{l.pk}"))
+        except ValidationError:
+            valor = None
+        if valor is None or valor < 0:
+            erros.append(f"Informe um valor líquido válido para «{l.descricao}».")
+        else:
+            liquidos[l.pk] = valor
+
+    if erros:
+        return render(request, "partials/baixa_erros.html", {"erros": erros})
+
+    with transaction.atomic():
+        for l in lancamentos:  # um a um, para o histórico registrar cada baixa
+            l.data_baixa = form.cleaned_data["data_baixa"]
+            l.caixa = form.cleaned_data["caixa"]
+            l.forma_baixa = form.cleaned_data["forma_baixa"]
+            l.liquido = liquidos[l.pk]
+            l.baixado_por = request.user
+            l.save()
+
+    resposta = HttpResponse(status=204)
+    resposta["HX-Trigger"] = json.dumps({"lancamentosBaixados": {"qtd": len(lancamentos)}})
+    return resposta

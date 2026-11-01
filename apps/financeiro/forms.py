@@ -1,7 +1,7 @@
 import unicodedata
 from decimal import Decimal, InvalidOperation
 from django import forms
-from .models import Centro, ContaFinanceira, Lancamento, SubCentro
+from .models import Caixa, Centro, ContaFinanceira, FormaBaixa, Lancamento, SubCentro
 
 DATA_BR = ["%d/%m/%Y"]
 
@@ -140,3 +140,18 @@ class FiltroLancamentosForm(forms.Form):
         if d.get("nota"):
             qs = qs.filter(nota_fiscal_numero__icontains=d["nota"])
         return qs
+
+class BaixaForm(forms.Form):
+    """Dados que valem para todos os lançamentos baixados de uma vez (o líquido é de cada um)."""
+    caixa = forms.ModelChoiceField(
+        queryset=Caixa.objects.filter(ativo=True),
+        error_messages={"required": "Selecione o caixa.", "invalid_choice": "Selecione o caixa."},
+    )
+    forma_baixa = forms.ModelChoiceField(
+        queryset=FormaBaixa.objects.filter(ativo=True),
+        error_messages={"required": "Selecione a forma de baixa.", "invalid_choice": "Selecione a forma de baixa."},
+    )
+    data_baixa = forms.DateField(
+        input_formats=DATA_BR,
+        error_messages={"required": "Informe a data de baixa.", "invalid": "Informe a data de baixa no formato dd/mm/aaaa."},
+    )

@@ -12,4 +12,9 @@ urlpatterns = [
     path("lancamentos/<int:pk>/", views.lancamento_linha, name="lancamento_linha"),
     path("lancamentos/<int:pk>/editar/", views.lancamento_editar, name="lancamento_editar"),
     path("importacoes/", views.importacoes, name="importacoes"),
+    path("lancamentos/baixar/", views.baixar_lancamentos, name="baixar_lancamentos"),
+    path("caixas/novo/", views.criar_caixa, name="criar_caixa"),
+    path("formas-baixa/novo/", views.criar_forma_baixa, name="criar_forma_baixa"),
+    path("lancamentos/excluir/", views.excluir_lancamentos, name="excluir_lancamentos"),
+    path("lancamentos/desfazer-exclusao/", views.desfazer_exclusao, name="desfazer_exclusao"),
 ]
