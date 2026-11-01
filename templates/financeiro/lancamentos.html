@@ -353,6 +353,27 @@
     <circle id="toastTimerCirculo" cx="10" cy="10" r="5" fill="none" stroke="#FFFFFF" stroke-width="10" stroke-dasharray="31.416" stroke-dashoffset="0"/>
   </svg>
 </div>
+
+<!-- Modal de Versões do Lançamento -->
+<div id="modalVersoes" class="no-print hidden fixed inset-0 z-40 flex items-center justify-center px-4 bg-black/40 backdrop-blur-sm" role="dialog" aria-modal="true">
+  <div class="w-full max-w-2xl bg-white rounded-2xl shadow-lg border border-[#E3EAE8] flex flex-col max-h-[90vh]">
+    
+    <div class="flex items-center justify-between px-6 py-4 border-b border-[#E3EAE8]">
+      <h2 class="text-lg font-medium text-ink">Histórico de Versões</h2>
+      <button type="button" id="modalVersoesFechar" class="text-[#6B7B78] hover:text-ink transition-colors">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M6 6L18 18M6 18L18 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+
+    <div class="p-6 overflow-y-auto" id="versoesConteudo">
+      <!-- Preenchido via JS -->
+    </div>
+    
+  </div>
+</div>
+
+<!-- Tooltip Global (para não ser cortado pela tabela) -->
+<div id="tooltipGlobal" class="pointer-events-none fixed z-[100] hidden bg-[#1E1E1E] text-white text-[11px] px-2.5 py-1.5 rounded-md shadow-lg whitespace-nowrap"></div>
 {% endblock %}
 
 {% block extra_js %}
@@ -439,7 +460,7 @@
 
   function atualizarPainel() {
     const marcadas = Array.from(resultados.querySelectorAll('.sel-linha:checked'));
-    if (marcadas.length === 0) {
+    if (marcadas.length < 2) { 
       painelSomatorio.classList.add('hidden');
       fecharPainelAcoes();
       return;
@@ -581,10 +602,6 @@
   function abrirModalExcluir() {
     const marcadas = Array.from(resultados.querySelectorAll('.sel-linha:checked'));
     if (marcadas.length === 0) return;
-    if (marcadas.some((cb) => cb.dataset.liquido)) {
-      mostrarToast('Lançamentos baixados não podem ser excluídos. Desmarque-os.');
-      return;
-    }
 
     let total = 0;
     const lista = document.getElementById('modalExcluirLista');
@@ -668,6 +685,7 @@
 
     const lista = document.getElementById('baixaLista');
     const ids = document.getElementById('baixaIds');
+    const resumo = document.getElementById('modalBaixaResumo');
     lista.innerHTML = '';
     ids.innerHTML = '';
     baixaErros.innerHTML = '';
@@ -678,7 +696,11 @@
       entrada.name = 'ids';
       entrada.value = cb.dataset.id;
       ids.appendChild(entrada);
+    });
 
+    // REGRA NOVA: Se for apenas 1, mostra o campo de valor. Se for mais de 1, esconde.
+    if (pendentes.length === 1) {
+      const cb = pendentes[0];
       const centavos = Math.round(parseFloat(cb.dataset.valor) * 100);
       const item = document.createElement('li');
       item.className = 'flex items-center justify-between gap-3';
@@ -687,16 +709,16 @@
       texto.className = 'min-w-0 text-xs sm:text-sm text-ink';
       const nome = document.createElement('p');
       nome.className = 'break-words';
-      nome.textContent = cb.closest('tr').children[2].textContent.trim();  // coluna Descrição
+      nome.textContent = cb.closest('tr').children[2].textContent.trim();
       const bruto = document.createElement('p');
       bruto.className = 'text-[#6B7B78]';
-      bruto.textContent = 'Bruto: ' + formatarBRL(centavos);
+      bruto.textContent = 'Valor do lançamento: ' + formatarBRL(centavos);
       texto.appendChild(nome);
       texto.appendChild(bruto);
 
       const campo = document.createElement('input');
       campo.type = 'text';
-      campo.name = 'liquido_' + cb.dataset.id;
+      campo.name = 'valor_baixado_' + cb.dataset.id; // Nome mudou aqui
       campo.inputMode = 'numeric';
       campo.autocomplete = 'off';
       campo.className = 'edit-valor w-36 shrink-0 text-right rounded-xl border border-[#CBD5D1] bg-white px-3 py-2 text-sm outline-none focus:border-teal';
@@ -705,12 +727,20 @@
       item.appendChild(texto);
       item.appendChild(campo);
       lista.appendChild(item);
-    });
+      
+      resumo.textContent = '1 lançamento. Você pode ajustar o valor caso seja uma baixa parcial.';
+      lista.classList.remove('hidden');
+      
+    } else {
+      // Se for mais de um, esconde a área de valores
+      lista.classList.add('hidden');
+      resumo.textContent = pendentes.length + ' lançamentos selecionados. O valor total de todos será baixado.';
+    }
 
     const ignorados = marcadas.length - pendentes.length;
-    document.getElementById('modalBaixaResumo').textContent =
-      (pendentes.length === 1 ? '1 lançamento.' : pendentes.length + ' lançamentos.') +
-      (ignorados ? ' ' + ignorados + (ignorados === 1 ? ' já baixado ficou de fora.' : ' já baixados ficaram de fora.') : '');
+    if (ignorados) {
+      resumo.textContent += ' ' + ignorados + (ignorados === 1 ? ' já baixado ficou de fora.' : ' já baixados ficaram de fora.');
+    }
 
     const data = document.getElementById('baixaData');
     if (data._flatpickr) data._flatpickr.setDate(new Date(), true);
@@ -851,5 +881,194 @@
     const campo = document.querySelector('tbody[data-editando] .edit-descricao');
     if (campo && !campo.closest('tbody').contains(document.activeElement)) campo.focus();
   });
+
+  // ---- Ações Individuais na Linha (Baixar e Excluir) ----
+  
+  // Botão Baixar da linha
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.btn-baixar-linha');
+    if (!btn) return;
+    
+    // Desmarca qualquer seleção anterior na tabela para não confundir o modal
+    resultados.querySelectorAll('.sel-linha').forEach(cb => cb.checked = false);
+    
+    // Marca a caixinha invisível do próprio lançamento
+    const id = btn.dataset.id;
+    const caixa = resultados.querySelector(`.sel-linha[data-id="${id}"]`);
+    if (caixa) {
+      caixa.checked = true;
+      atualizarSelecao(); // Isso vai atualizar o painel de baixo (mas ele não vai abrir, pois tem só 1)
+    }
+    
+    // Abre o modal (a lógica dele já vai ler a caixinha que acabamos de marcar)
+    abrirModalBaixa();
+  });
+
+  // Botão Excluir da linha
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.btn-excluir-linha');
+    if (!btn) return;
+
+    // Mesma lógica: desmarca todos e marca só o que foi clicado
+    resultados.querySelectorAll('.sel-linha').forEach(cb => cb.checked = false);
+    
+    const id = btn.dataset.id;
+    const caixa = resultados.querySelector(`.sel-linha[data-id="${id}"]`);
+    if (caixa) {
+      caixa.checked = true;
+      atualizarSelecao();
+    }
+
+    // Abre o modal de exclusão
+    abrirModalExcluir();
+  });
+  // ---- Modal de Versões ----
+  const modalVersoes = document.getElementById('modalVersoes');
+  const versoesConteudo = document.getElementById('versoesConteudo');
+
+  document.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.btn-versoes');
+    if (!btn) return;
+
+    const id = btn.dataset.id;
+    versoesConteudo.innerHTML = '<p class="text-sm text-[#6B7B78] animate-pulse">Carregando histórico...</p>';
+    modalVersoes.classList.remove('hidden');
+
+    try {
+      const url = `/lancamentos/${id}/versoes/`;
+      const resp = await fetch(url, { headers: { 'HX-Request': 'true' } });
+      const data = await resp.json();
+      
+      if (data.versoes.length === 0) {
+        versoesConteudo.innerHTML = '<p class="text-sm text-[#6B7B78]">Nenhuma versão encontrada.</p>';
+        return;
+      }
+
+      let html = '<div class="flex flex-col gap-4">';
+      data.versoes.forEach((v, index) => {
+        const isAtual = index === 0;
+        const corBorda = isAtual ? 'border-teal' : 'border-[#E3EAE8]';
+        const bgBadge = isAtual ? 'bg-teal text-white' : 'bg-[#F4F7F6] text-[#4A5B57]';
+        
+        // O botão de restaurar só aparece se NÃO for a versão atual
+        const btnRestaurar = !isAtual ? `
+          <button type="button" class="btn-restaurar text-xs text-[#2563EB] hover:underline mt-3" 
+                  data-id="${id}" data-date="${v.iso_date}">
+            Restaurar esta versão
+          </button>
+        ` : '';
+
+        html += `
+          <div class="border ${corBorda} rounded-xl p-4 relative flex flex-col">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-medium px-2 py-1 rounded-md ${bgBadge}">${v.acao} ${isAtual ? '(Atual)' : ''}</span>
+              <span class="text-xs text-[#6B7B78]">${v.data} • ${v.usuario}</span>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-2 text-sm">
+              <div><span class="text-[#6B7B78]">Descrição:</span> ${v.descricao}</div>
+              <div><span class="text-[#6B7B78]">Valor:</span> R$ ${v.valor.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</div>
+              <div><span class="text-[#6B7B78]">Líquido:</span> ${v.liquidado ? 'R$ ' + v.liquidado.toLocaleString('pt-BR', {minimumFractionDigits: 2}) : '—'}</div>
+              <div><span class="text-[#6B7B78]">Baixado em:</span> ${v.baixado_em || '—'}</div>
+            </div>
+            ${btnRestaurar}
+          </div>
+        `;
+      });
+      html += '</div>';
+      
+      versoesConteudo.innerHTML = html;
+
+    } catch (err) {
+      versoesConteudo.innerHTML = '<p class="text-sm text-[#B91C1C]">Erro ao carregar o histórico.</p>';
+      console.error(err);
+    }
+  });
+
+  document.getElementById('modalVersoesFechar').addEventListener('click', () => {
+    modalVersoes.classList.add('hidden');
+  });
+  
+  modalVersoes.addEventListener('click', (e) => {
+    if (e.target === modalVersoes) modalVersoes.classList.add('hidden');
+  });
+
+  // Ação de restaurar a versão
+  document.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.btn-restaurar');
+    if (!btn) return;
+
+    if (!confirm("Tem certeza que deseja restaurar esta versão? Os dados atuais serão substituídos.")) return;
+
+    const id = btn.dataset.id;
+    const date = btn.dataset.date;
+
+    btn.innerHTML = 'Restaurando...';
+    btn.disabled = true;
+
+    try {
+      const resp = await fetch(`/lancamentos/${id}/restaurar-versao/`, {
+        method: 'POST',
+        headers: { 
+          'X-CSRFToken': document.body.getAttribute('hx-headers') ? JSON.parse(document.body.getAttribute('hx-headers'))['X-CSRFToken'] : '',
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: `history_date=${encodeURIComponent(date)}`
+      });
+
+      if (resp.ok) {
+        modalVersoes.classList.add('hidden');
+        // Recarrega a tabela
+        htmx.ajax('GET', location.pathname + location.search, { target: '#tabelaResultados', swap: 'innerHTML' });
+        mostrarToast('Versão restaurada com sucesso.');
+      } else {
+        alert('Erro ao restaurar versão.');
+        btn.innerHTML = 'Restaurar esta versão';
+        btn.disabled = false;
+      }
+    } catch (err) {
+      console.error(err);
+      btn.innerHTML = 'Restaurar esta versão';
+      btn.disabled = false;
+    }
+  });
+
+  // --- Tooltip Global (para não ser cortado pelo overflow da tabela) ---
+  const tooltipGlobal = document.getElementById('tooltipGlobal');
+
+  document.addEventListener('mouseover', (e) => {
+    const el = e.target.closest('[data-tooltip]');
+    if (!el) return;
+    
+    tooltipGlobal.textContent = el.dataset.tooltip;
+    tooltipGlobal.classList.remove('hidden');
+  });
+
+  document.addEventListener('mouseout', (e) => {
+    if (e.target.closest('[data-tooltip]')) {
+      tooltipGlobal.classList.add('hidden');
+    }
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!tooltipGlobal.classList.contains('hidden')) {
+      // Mede a largura do tooltip para saber se ele vai vazar da tela
+      const larguraTooltip = tooltipGlobal.offsetWidth;
+      const margem = 15;
+      
+      // Se o mouse + largura do tooltip passar do tamanho da tela
+      if (e.clientX + larguraTooltip + margem > window.innerWidth) {
+        // Joga o tooltip para a esquerda do mouse
+        tooltipGlobal.style.left = (e.clientX - larguraTooltip - 10) + 'px';
+      } else {
+        // Mantém à direita do mouse
+        tooltipGlobal.style.left = (e.clientX + 10) + 'px';
+      }
+      
+      // Posiciona acima do mouse
+      tooltipGlobal.style.top = (e.clientY - 30) + 'px';
+    }
+  });
+
 </script>
 {% endblock %}

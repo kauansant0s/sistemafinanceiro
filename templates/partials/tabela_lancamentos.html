@@ -43,8 +43,8 @@
     </p>
   </div>
 
-  <div class="overflow-x-auto">
-    <table class="w-full border-collapse">
+  <div class="overflow-x-auto lg:overflow-visible pb-24">
+  <table class="w-full border-collapse">
       <thead>
         <tr class="bg-teal">
           <th class="text-left text-sm sm:text-base font-medium tracking-wide text-white uppercase px-4 sm:px-6 py-3.5">Centro</th>
@@ -64,7 +64,7 @@
               </button>
             </div>
           </th>
-          <th class="no-print text-center text-sm sm:text-base font-medium tracking-wide text-white uppercase px-4 sm:px-6 py-3.5">Editar</th>
+          <th class="no-print text-center text-sm sm:text-base font-medium tracking-wide text-white uppercase px-4 sm:px-6 py-3.5">Ações</th>
         </tr>
       </thead>
       {% for l in pagina %}{% include "partials/_lancamento.html" with detalhe_aberto=False %}

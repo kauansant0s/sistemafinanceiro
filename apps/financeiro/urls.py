@@ -17,4 +17,6 @@ urlpatterns = [
     path("formas-baixa/novo/", views.criar_forma_baixa, name="criar_forma_baixa"),
     path("lancamentos/excluir/", views.excluir_lancamentos, name="excluir_lancamentos"),
     path("lancamentos/desfazer-exclusao/", views.desfazer_exclusao, name="desfazer_exclusao"),
+    path("lancamentos/<int:pk>/versoes/", views.lancamento_versoes, name="lancamento_versoes"),
+    path("lancamentos/<int:pk>/restaurar-versao/", views.restaurar_versao, name="restaurar_versao"),
 ]

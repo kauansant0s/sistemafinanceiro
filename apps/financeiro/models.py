@@ -82,6 +82,10 @@ class Lancamento(models.Model):
         max_digits=12, decimal_places=2,
         validators=[MinValueValidator(Decimal("0.01"))],
     )
+    valor_baixado = models.DecimalField(
+        max_digits=12, decimal_places=2, null=True, blank=True,
+        verbose_name="Valor baixado"
+    )
     data_competencia = models.DateField()
     data_vencimento = models.DateField()
     criado_em = models.DateTimeField(auto_now_add=True)
@@ -91,6 +95,12 @@ class Lancamento(models.Model):
     liquido = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     caixa = models.ForeignKey(Caixa, null=True, blank=True, on_delete=models.PROTECT, related_name="lancamentos")
     forma_baixa = models.ForeignKey(FormaBaixa, null=True, blank=True, on_delete=models.PROTECT, related_name="lancamentos")
+    criado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        null=True, blank=True, 
+        on_delete=models.SET_NULL, 
+        related_name="lancamentos_criados"
+    )
     baixado_por = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
 
     history = HistoricalRecords()
@@ -106,6 +116,16 @@ class Lancamento(models.Model):
     
     def save(self, *args, **kwargs):
         self.descricao = self.descricao.upper()
+        
+        if self.data_baixa:
+            # Se o usuário digitou um valor baixado no modal, usamos ele.
+            # Se não digitou (ou se baixou em lote), o valor baixado é o bruto.
+            if self.valor_baixado is None:
+                self.valor_baixado = self.valor
+            
+            # O líquido agora é o valor baixado. (No futuro, aqui entra a conta de imposto)
+            self.liquido = self.valor_baixado
+            
         super().save(*args, **kwargs)
 
     def __str__(self):

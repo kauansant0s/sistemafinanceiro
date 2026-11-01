@@ -12,9 +12,10 @@ from .forms import BaixaForm, FiltroLancamentosForm, LancamentoEdicaoForm, Lanca
 from .models import Caixa, ContaFinanceira, FormaBaixa, Lancamento, SubCentro
 import json
 from django.db import transaction
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from datetime import timedelta
 from django.core.exceptions import ValidationError
+from django.utils.dateparse import parse_datetime
 
 def _subcentros_do_centro(centro_id):
     if centro_id and str(centro_id).isdigit():
@@ -27,7 +28,10 @@ def novo_lancamento(request):
     if request.method == "POST":
         form = LancamentoForm(request.POST)
         if form.is_valid():
-            form.save()
+            lancamento = form.save(commit=False)
+            lancamento.criado_por = request.user # Salva o usuário logado
+            lancamento.save()
+            
             messages.success(request, "Lançamento salvo com sucesso.")
             return redirect("financeiro:novo_lancamento")
         centro_id = request.POST.get("centro")
@@ -196,7 +200,7 @@ def excluir_lancamentos(request):
     excluidos = []
     with transaction.atomic():
         # um a um, para o histórico registrar cada exclusão
-        for l in Lancamento.objects.filter(pk__in=ids, data_baixa__isnull=True):  # baixados não se excluem
+        for l in Lancamento.objects.filter(pk__in=ids):  # baixados não se excluem
             excluidos.append(l.pk)
             l.delete()
     resposta = HttpResponse(status=204)
@@ -265,7 +269,7 @@ def criar_forma_baixa(request):
 @login_required
 @require_POST
 def baixar_lancamentos(request):
-    """Baixa os lançamentos marcados. Erros voltam como HTML para a caixa de avisos do modal."""
+    """Baixa os lançamentos marcados. Suporta baixa parcial se for um único item."""
     form = BaixaForm(request.POST)
     ids = [int(i) for i in request.POST.getlist("ids") if i.isdigit()]
     lancamentos = list(Lancamento.objects.filter(pk__in=ids, data_baixa__isnull=True))
@@ -273,19 +277,29 @@ def baixar_lancamentos(request):
 
     if not lancamentos:
         erros.append("Nenhum lançamento para baixar (os já baixados são ignorados).")
+    
     for campo_erros in form.errors.values():
         erros.extend(campo_erros)
 
-    liquidos = {}
-    for l in lancamentos:
+    valores_baixados = {}
+    
+    # Se for apenas 1 lançamento, lê o valor digitado (pode ser parcial)
+    if len(lancamentos) == 1:
+        l = lancamentos[0]
         try:
-            valor = _valor_br(request.POST.get(f"liquido_{l.pk}"))
+            valor_pago = _valor_br(request.POST.get(f"valor_baixado_{l.pk}"))
         except ValidationError:
-            valor = None
-        if valor is None or valor < 0:
-            erros.append(f"Informe um valor líquido válido para «{l.descricao}».")
+            valor_pago = None
+        
+        if valor_pago is None or valor_pago <= 0:
+            erros.append(f"Informe um valor baixado válido para «{l.descricao}».")
         else:
-            liquidos[l.pk] = valor
+            valores_baixados[l.pk] = valor_pago
+            
+    # Se for mais de 1, assume o valor total (bruto) para todos
+    else:
+        for l in lancamentos:
+            valores_baixados[l.pk] = l.valor
 
     if erros:
         return render(request, "partials/baixa_erros.html", {"erros": erros})
@@ -295,10 +309,70 @@ def baixar_lancamentos(request):
             l.data_baixa = form.cleaned_data["data_baixa"]
             l.caixa = form.cleaned_data["caixa"]
             l.forma_baixa = form.cleaned_data["forma_baixa"]
-            l.liquido = liquidos[l.pk]
+            l.valor_baixado = valores_baixados[l.pk]
             l.baixado_por = request.user
-            l.save()
+            l.save() # O save() do model vai calcular o liquido sozinho agora
 
     resposta = HttpResponse(status=204)
     resposta["HX-Trigger"] = json.dumps({"lancamentosBaixados": {"qtd": len(lancamentos)}})
     return resposta
+
+@login_required
+def lancamento_versoes(request, pk):
+    """Retorna o histórico de versões do lançamento em JSON para o modal."""
+    if not request.htmx:
+        return redirect("financeiro:lancamentos")
+    
+    # Pega todo o histórico daquele lançamento, da mais nova para a mais velha
+    historicos = Lancamento.history.filter(id=pk).order_by('-history_date')
+    
+    dados = []
+    for h in historicos:
+        # Pula a versão atual para mostrar só as antigas (opcional, mas fica mais limpo)
+        if h.history_type == '+':
+            acao = 'Criado'
+        elif h.history_type == '~':
+            acao = 'Editado'
+        elif h.history_type == '-':
+            acao = 'Excluído'
+        
+        dados.append({
+            'data': timezone.localtime(h.history_date).strftime('%d/%m/%Y %H:%M'),
+            'acao': acao,
+            'usuario': h.history_user.nome_completo if h.history_user else 'Sistema',
+            'descricao': h.descricao,
+            'valor': float(h.valor),
+            'liquidado': float(h.liquido) if h.liquido else None,
+            'baixado_em': h.data_baixa.strftime('%d/%m/%Y') if h.data_baixa else None,
+            'caixa': h.caixa.nome if h.caixa else None,
+            'iso_date': h.history_date.isoformat(),
+        })
+    
+    return JsonResponse({'versoes': dados})
+
+@login_required
+@require_POST
+def restaurar_versao(request, pk):
+    data_iso = request.POST.get("history_date")
+    
+    if not data_iso:
+        return HttpResponse("Data não enviada", status=400)
+
+    try:
+        # O parse_datetime lida com o formato de data que vem do JS
+        dt_alvo = parse_datetime(data_iso)
+        
+        # Busca o registro histórico exato
+        registro = Lancamento.history.get(id=pk, history_date=dt_alvo)
+        
+        # O registro.instance tem os dados de como o lançamento estava naquela data.
+        # O .save() vai sobrescrever o atual com os dados antigos.
+        registro.instance.save()
+        
+        resposta = HttpResponse(status=204)
+        resposta["HX-Trigger"] = json.dumps({"versaoRestaurada": {"qtd": 1}})
+        return resposta
+        
+    except Exception as e:
+        # Retorna o erro real do Python para o JS mostrar
+        return HttpResponse(f"Erro: {str(e)}", status=400)
