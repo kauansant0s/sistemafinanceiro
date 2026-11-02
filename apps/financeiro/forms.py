@@ -46,6 +46,29 @@ class LancamentoForm(forms.ModelForm):
             self.add_error("subcentro", "Este sub-centro não pertence ao centro escolhido.")
         return dados
 
+class NovoLancamentoForm(LancamentoForm):
+    """Tela de novo lançamento: acrescenta o parcelamento / recorrência."""
+
+    FREQUENCIAS = [
+        ("semanal", "Semanal"), ("quinzenal", "Quinzenal"), ("mensal", "Mensal"),
+        ("bimestral", "Bimestral"), ("trimestral", "Trimestral"),
+        ("semestral", "Semestral"), ("anual", "Anual"),
+    ]
+
+    parcelado = forms.BooleanField(required=False)
+    frequencia = forms.ChoiceField(choices=FREQUENCIAS, required=False)
+    qtd_parcelas = forms.IntegerField(required=False, min_value=2, max_value=60)
+    recorrente = forms.BooleanField(required=False)
+
+    def clean(self):
+        dados = super().clean()
+        if dados.get("parcelado"):
+            if not dados.get("frequencia"):
+                self.add_error("frequencia", "Escolha a frequência.")
+            if not dados.get("recorrente") and not dados.get("qtd_parcelas"):
+                self.add_error("qtd_parcelas", "Informe a quantidade de parcelas (de 2 a 60) ou marque recorrente.")
+        return dados
+
 def formatar_brl(valor):
     """Decimal('1234.5') -> 'R$ 1.234,50' (mesmo formato da máscara dos campos de valor)."""
     texto = f"{valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")

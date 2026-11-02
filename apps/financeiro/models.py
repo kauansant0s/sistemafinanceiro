@@ -118,9 +118,7 @@ class Lancamento(models.Model):
 
     @property
     def saldo_restante(self):
-        if self.valor_baixado:
-            return self.valor - self.valor_baixado
-        return self.valor
+        return max(self.valor - (self.valor_baixado or Decimal("0")), Decimal("0"))
     
     def save(self, *args, **kwargs):
         self.descricao = self.descricao.upper()

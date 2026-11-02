@@ -8,7 +8,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.vary import vary_on_headers
 from django.views.decorators.http import require_http_methods, require_POST
-from .forms import BaixaForm, FiltroLancamentosForm, LancamentoEdicaoForm, LancamentoForm, _valor_br, normalizar, EdicaoInfosForm
+from .forms import BaixaForm, FiltroLancamentosForm, LancamentoEdicaoForm, LancamentoForm, NovoLancamentoForm, _valor_br, normalizar, EdicaoInfosForm, formatar_brl
 from .models import Caixa, ContaFinanceira, FormaBaixa, Lancamento, SubCentro, AnexoLancamento, BaixaParcial
 import json
 from django.db import transaction
@@ -16,29 +16,79 @@ from django.http import HttpResponse, JsonResponse
 from datetime import timedelta
 from django.core.exceptions import ValidationError
 from django.utils.dateparse import parse_datetime
+import calendar
 
 def _subcentros_do_centro(centro_id):
     if centro_id and str(centro_id).isdigit():
         return SubCentro.objects.filter(centro_id=centro_id)
     return SubCentro.objects.none()
 
+# Passo de cada frequência: (dias, meses)
+_PASSO_FREQUENCIA = {
+    "semanal": (7, 0), "quinzenal": (14, 0), "mensal": (0, 1), "bimestral": (0, 2),
+    "trimestral": (0, 3), "semestral": (0, 6), "anual": (0, 12),
+}
+# Recorrente não tem fim: por enquanto gera o equivalente a 12 meses à frente.
+_QTD_RECORRENTE = {
+    "semanal": 52, "quinzenal": 26, "mensal": 12, "bimestral": 6,
+    "trimestral": 4, "semestral": 2, "anual": 2,
+}
+
+
+def _somar_periodo(data, dias, meses):
+    """Soma dias ou meses; em meses, dia 31 vira o último dia do mês quando preciso."""
+    if dias:
+        return data + timedelta(days=dias)
+    total = data.year * 12 + (data.month - 1) + meses
+    ano, mes = divmod(total, 12)
+    mes += 1
+    ultimo = calendar.monthrange(ano, mes)[1]
+    return data.replace(year=ano, month=mes, day=min(data.day, ultimo))
+
+
+def _gerar_parcelas(base, frequencia, qtd):
+    """Salva `qtd` lançamentos (ou o equivalente a 12 meses se qtd=None, recorrente).
+    A 1ª parcela usa as datas informadas; as demais avançam pela frequência.
+    Competência e vencimento andam juntos. Retorna quantos foram criados."""
+    dias, meses = _PASSO_FREQUENCIA[frequencia]
+    parcelado = qtd is not None   # recorrente (qtd=None) não leva "Parcela x de y"
+    qtd = qtd or _QTD_RECORRENTE[frequencia]
+    comp0, venc0, desc0 = base.data_competencia, base.data_vencimento, base.descricao
+    with transaction.atomic():
+        for i in range(qtd):
+            if parcelado:
+                base.descricao = f"{desc0} - Parcela {i + 1} de {qtd}"
+            base.pk = None            # novo registro a cada volta
+            base._state.adding = True
+            base.data_competencia = _somar_periodo(comp0, dias * i, meses * i)
+            base.data_vencimento = _somar_periodo(venc0, dias * i, meses * i)
+            base.save()
+    return qtd
 
 @login_required
 def novo_lancamento(request):
     if request.method == "POST":
-        form = LancamentoForm(request.POST)
+        form = NovoLancamentoForm(request.POST)
         if form.is_valid():
             lancamento = form.save(commit=False)
-            lancamento.criado_por = request.user # Salva o usuário logado
-            lancamento.save()
-            
-            messages.success(request, "Lançamento salvo com sucesso.")
+            lancamento.criado_por = request.user  # Salva o usuário logado
+
+            if form.cleaned_data["parcelado"]:
+                qtd = _gerar_parcelas(
+                    lancamento,
+                    form.cleaned_data["frequencia"],
+                    None if form.cleaned_data["recorrente"] else form.cleaned_data["qtd_parcelas"],
+                )
+                messages.success(request, f"{qtd} lançamentos salvos com sucesso.")
+            else:
+                lancamento.save()
+                messages.success(request, "Lançamento salvo com sucesso.")
             return redirect("financeiro:novo_lancamento")
         centro_id = request.POST.get("centro")
         subcentro_selecionado = request.POST.get("subcentro")
         conta_id = request.POST.get("conta", "")
     else:
-        form = LancamentoForm()
+        form = NovoLancamentoForm()
         centro_id = subcentro_selecionado = None
         conta_id = ""
 
@@ -53,7 +103,6 @@ def novo_lancamento(request):
         "subcentro_selecionado": subcentro_selecionado,
         "conta_atual": conta_atual,
     })
-
 
 @login_required
 def subcentros(request):
@@ -297,32 +346,42 @@ def criar_forma_baixa(request):
 def baixar_lancamentos(request):
     form = BaixaForm(request.POST)
     ids = [int(i) for i in request.POST.getlist("ids") if i.isdigit()]
-    # A MÁGICA AQUI: Removemos o data_baixa__isnull=True para permitir baixas em lançamentos que já têm baixa
-    lancamentos = list(Lancamento.objects.filter(pk__in=ids))
+
+    # só entram lançamentos que ainda têm saldo a baixar
+    lancamentos = [
+        l for l in Lancamento.objects.filter(pk__in=ids)
+        if l.saldo_restante > 0
+    ]
     erros = []
 
     if not lancamentos:
-        erros.append("Nenhum lançamento encontrado.")
-    
+        erros.append("Nenhum lançamento com saldo a baixar.")
+
     for campo_erros in form.errors.values():
         erros.extend(campo_erros)
 
     valores_baixados = {}
-    
+
     if len(lancamentos) == 1:
+        # Um só lançamento: usa o valor digitado (pode ser parcial, mas nunca acima do saldo)
         l = lancamentos[0]
         try:
             valor_pago = _valor_br(request.POST.get(f"valor_baixado_{l.pk}"))
         except ValidationError:
             valor_pago = None
-        
+
         if valor_pago is None or valor_pago <= 0:
             erros.append(f"Informe um valor baixado válido para «{l.descricao}».")
+        elif valor_pago > l.saldo_restante:
+            erros.append(
+                f"O valor baixado não pode ser maior que o saldo ({formatar_brl(l.saldo_restante)})."
+            )
         else:
             valores_baixados[l.pk] = valor_pago
     else:
+        # Vários lançamentos: baixa o saldo inteiro de cada um
         for l in lancamentos:
-            valores_baixados[l.pk] = l.valor # Em lote, assume o valor cheio
+            valores_baixados[l.pk] = l.saldo_restante
 
     if erros:
         return render(request, "partials/baixa_erros.html", {"erros": erros})
@@ -330,25 +389,22 @@ def baixar_lancamentos(request):
     with transaction.atomic():
         for l in lancamentos:
             valor_pago = valores_baixados[l.pk]
-            
-            # Cria o registro da baixa parcial com o valor que o usuário digitou agora
+
+            # Registra esta baixa no histórico de baixas
             BaixaParcial.objects.create(
                 lancamento=l,
                 data_baixa=form.cleaned_data["data_baixa"],
-                valor_baixado=valor_pago
+                valor_baixado=valor_pago,
             )
 
-            # Soma o valor pago agora com o que já tinha sido pago antes (se houver)
-            pago_anterior = l.valor_baixado or Decimal('0')
-            total_pago = pago_anterior + valor_pago
-            
+            # Soma com o que já tinha sido baixado antes
+            l.valor_baixado = (l.valor_baixado or Decimal("0")) + valor_pago
             l.data_baixa = form.cleaned_data["data_baixa"]
             l.caixa = form.cleaned_data["caixa"]
             l.forma_baixa = form.cleaned_data["forma_baixa"]
-            l.valor_baixado = total_pago
             l.baixado_por = request.user
-            
-            # O save() do model vai definir self.liquido = self.valor_baixado
+
+            # O save() do model define liquido = valor_baixado
             l.save()
 
     resposta = HttpResponse(status=204)

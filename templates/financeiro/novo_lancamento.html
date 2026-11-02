@@ -20,8 +20,10 @@
       <form method="post" id="lancamentoForm" data-ano="{{ ano_atual }}" class="bg-white rounded-b-2xl px-6 sm:px-8 py-6 sm:py-8">
         {% csrf_token %}
 
-        {% for e in form.non_field_errors %}
-          <p class="mb-4 rounded-xl bg-[#FBE9E9] px-4 py-2 text-sm text-[#8A1C1C]">{{ e }}</p>
+        {% for campo, erros in form.errors.items %}
+          {% for e in erros %}
+            <p class="mb-4 rounded-xl bg-[#FBE9E9] px-4 py-2 text-sm text-[#8A1C1C]">{{ e }}</p>
+          {% endfor %}
         {% endfor %}
 
         <!-- 1. Receita/Despesa (Agora é o primeiro campo) -->
@@ -96,10 +98,39 @@
             </div>
           </div>
 
-          <div class="mt-5 sm:mt-6">
-            <label for="valor" class="block text-sm sm:text-base mb-2">Valor</label>
-            <input type="text" id="valor" name="valor" inputmode="numeric" autocomplete="off" placeholder="R$ 0,00"
-                   class="w-full rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 text-sm sm:text-base outline-none focus:border-teal">
+          <div class="mt-5 sm:mt-6 grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6 sm:items-end">
+            <div>
+              <label for="valor" class="block text-sm sm:text-base mb-2">Valor</label>
+              <input type="text" id="valor" name="valor" inputmode="numeric" autocomplete="off" placeholder="R$ 0,00"
+                     class="w-full rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 text-sm sm:text-base outline-none focus:border-teal">
+            </div>
+            <label class="flex items-center gap-2 text-sm sm:text-base cursor-pointer select-none sm:pb-2.5">
+              <input type="checkbox" id="parcelado" name="parcelado" class="h-4 w-4 accent-[#58B6A2]">
+              Lançamento parcelado ou recorrente?
+            </label>
+          </div>
+
+          <!-- Frequência (aparece só se "parcelado ou recorrente" estiver marcado) -->
+          <div id="parcelasBox" class="hidden mt-5 sm:mt-6 rounded-xl border border-[#CBD5D1] bg-[#F4F7F6] p-4">
+            <p class="text-sm sm:text-base font-medium mb-3">Escolha uma frequência</p>
+            <div class="flex flex-wrap gap-2">
+              {% for valor_f, rotulo in form.FREQUENCIAS %}
+              <label class="cursor-pointer">
+                <input type="radio" name="frequencia" value="{{ valor_f }}" class="sr-only peer" {% if valor_f == "mensal" %}checked{% endif %}>
+                <span class="block rounded-lg border border-[#CBD5D1] bg-white px-3 py-1.5 text-sm peer-checked:bg-teal peer-checked:text-white peer-checked:border-teal peer-focus-visible:ring-2 peer-focus-visible:ring-teal/40">{{ rotulo }}</span>
+              </label>
+              {% endfor %}
+            </div>
+
+            <div class="mt-4 flex flex-wrap items-center gap-4">
+              <input type="text" id="qtdParcelas" name="qtd_parcelas" inputmode="numeric" maxlength="2" autocomplete="off" placeholder="Quantidade de parcelas (2 a 60)"
+                     class="w-full sm:w-72 rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 text-sm sm:text-base outline-none focus:border-teal disabled:bg-[#E9EEEC] disabled:cursor-not-allowed">
+              <label class="flex items-center gap-2 text-sm sm:text-base cursor-pointer select-none">
+                <input type="checkbox" id="recorrente" name="recorrente" class="h-4 w-4 accent-[#58B6A2]">
+                Lançamento recorrente
+              </label>
+            </div>
+            <p id="recorrenteAviso" class="hidden mt-2 text-xs text-[#6B7B78]">Sem fim definido: serão criados os lançamentos dos próximos 12 meses.</p>
           </div>
 
           <div class="mt-5 sm:mt-6 grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
@@ -140,6 +171,13 @@
   const valor = document.getElementById('valor');
   const notaAno = document.getElementById('notaAno');
 
+  // Enter dentro dos campos de texto não envia o formulário (só o botão Salvar envia)
+  formLanc.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && e.target.tagName === 'INPUT') {
+      e.preventDefault();
+    }
+  });
+
   function mostrar(el, sim) { el.classList.toggle('hidden', !sim); }
 
   // Abrevia a escolha de uma conta
@@ -168,6 +206,7 @@
     } else {
       mostrar(convenioField, false);
       document.getElementById('convenioInput').value = '';
+      atualizarDescricaoAuto();   // <-- nova: tira o prefixo do convênio
     }
 
     if (!notaAno.value) notaAno.value = formLanc.dataset.ano; 
@@ -279,13 +318,19 @@
 
   ['dataCompetencia', 'dataVencimento'].forEach((id) => {
     const el = document.getElementById(id);
-    flatpickr(el, { locale: 'pt', dateFormat: 'd/m/Y', allowInput: true });
+    const opcoes = { locale: 'pt', dateFormat: 'd/m/Y', allowInput: true };
+    if (id === 'dataCompetencia') {
+      opcoes.defaultDate = new Date();                 // já vem com o dia de hoje
+      opcoes.onChange = () => atualizarDescricaoAuto(); // mudou o mês no calendário
+    }
+    flatpickr(el, opcoes);
     el.addEventListener('input', () => {
       const d = el.value.replace(/\D/g, '').slice(0, 8);
       let saida = d;
       if (d.length > 4) saida = d.slice(0, 2) + '/' + d.slice(2, 4) + '/' + d.slice(4);
       else if (d.length > 2) saida = d.slice(0, 2) + '/' + d.slice(2);
       el.value = saida;
+      if (id === 'dataCompetencia') atualizarDescricaoAuto(); // digitou a data na mão
     });
   });
 
@@ -298,10 +343,35 @@
   const conveniosLista = ['IPE', 'SAUDE BRADESCO', 'SAUDE MAIOR', 'CASSI', 'UNIMED'];
   let convenioIndexFocado = -1; // Guarda qual item está selecionado com as setas
 
+  // --- Descrição automática: "CONVÊNIO MÊS ANO - " ---
+  const MESES = ['JANEIRO','FEVEREIRO','MARÇO','ABRIL','MAIO','JUNHO','JULHO','AGOSTO','SETEMBRO','OUTUBRO','NOVEMBRO','DEZEMBRO'];
+  let prefixoAuto = '';  // último prefixo que o sistema colocou
+
+  function montarPrefixo() {
+    const conv = convenioInput.value.trim();
+    const m = document.getElementById('dataCompetencia').value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (!conv || !m) return '';
+    const mes = parseInt(m[2], 10);
+    if (mes < 1 || mes > 12) return '';
+    return `${conv} ${MESES[mes - 1]} ${m[3]} - `;
+  }
+
+  function atualizarDescricaoAuto() {
+    const novo = montarPrefixo();
+    const atual = descricao.value;
+    // só mexe se a descrição está vazia ou ainda começa com o prefixo automático
+    // (se o usuário editou o prefixo na mão, o sistema para de mexer)
+    if (atual === '' || (prefixoAuto && atual.startsWith(prefixoAuto))) {
+      descricao.value = novo + atual.slice(prefixoAuto.length);
+      prefixoAuto = novo;
+    }
+  }
+
   function selecionarConvenio(nome) {
     convenioInput.value = nome;
     convenioResultados.classList.add('hidden');
     convenioIndexFocado = -1;
+    atualizarDescricaoAuto();   // <-- nova
     const centroSelect = document.getElementById('centro');
     if (centroSelect) centroSelect.focus();
   }
@@ -319,7 +389,8 @@
   }
 
   convenioInput.addEventListener('input', () => {
-    convenioIndexFocado = -1; // Reseta o foco ao digitar
+    convenioIndexFocado = -1;
+    if (!convenioInput.value.trim()) atualizarDescricaoAuto();
     const q = convenioInput.value.trim().toLowerCase();
     convenioResultados.innerHTML = '';
     
@@ -368,6 +439,26 @@
         selecionarConvenio(itens[0].textContent); // Se não usou seta, pega o primeiro
       }
     }
+  });
+
+  // --- Parcelado / recorrente ---
+  const parcelado = document.getElementById('parcelado');
+  const parcelasBox = document.getElementById('parcelasBox');
+  const qtdParcelas = document.getElementById('qtdParcelas');
+  const recorrente = document.getElementById('recorrente');
+  const recorrenteAviso = document.getElementById('recorrenteAviso');
+
+  parcelado.addEventListener('change', () => {
+    mostrar(parcelasBox, parcelado.checked);
+    if (parcelado.checked && !recorrente.checked) qtdParcelas.focus();
+  });
+  recorrente.addEventListener('change', () => {
+    qtdParcelas.disabled = recorrente.checked;
+    if (recorrente.checked) qtdParcelas.value = '';
+    mostrar(recorrenteAviso, recorrente.checked);
+  });
+  qtdParcelas.addEventListener('input', () => {
+    qtdParcelas.value = qtdParcelas.value.replace(/\D/g, '').slice(0, 2);
   });
 </script>
 {% endblock %}
