@@ -8,7 +8,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.vary import vary_on_headers
 from django.views.decorators.http import require_http_methods, require_POST
-from .forms import BaixaForm, FiltroLancamentosForm, LancamentoEdicaoForm, LancamentoForm, _valor_br, normalizar
+from .forms import BaixaForm, FiltroLancamentosForm, LancamentoEdicaoForm, LancamentoForm, _valor_br, normalizar, EdicaoInfosForm
 from .models import Caixa, ContaFinanceira, FormaBaixa, Lancamento, SubCentro, AnexoLancamento
 import json
 from django.db import transaction
@@ -366,7 +366,7 @@ def lancamento_versoes(request, pk):
         dados.append({
             'data': timezone.localtime(h.history_date).strftime('%d/%m/%Y %H:%M'),
             'acao': acao,
-            'usuario': h.history_user.nome_completo if h.history_user else 'Sistema',
+            'usuario': h.history_user.nome_completo if h.history_user and hasattr(h.history_user, 'nome_completo') else (h.history_user.username if h.history_user else 'Sistema'),
             'descricao': h.descricao,
             'valor': float(h.valor),
             'liquidado': float(h.liquido) if h.liquido else None,
@@ -518,3 +518,66 @@ def desfazer_exclusao_anexo(request):
         })
     
     return HttpResponse("Nada para desfazer", status=400)
+
+@login_required
+@require_POST
+def editar_infos_lote(request):
+    form = EdicaoInfosForm(request.POST)
+    ids = [int(i) for i in request.POST.getlist("ids") if i.isdigit()]
+    lancamentos = list(Lancamento.objects.filter(pk__in=ids))
+    
+    if not form.is_valid():
+        return HttpResponse("Erro na validação dos dados.", status=400)
+
+    d = form.cleaned_data
+    pendentes_ids = []
+    
+    with transaction.atomic():
+        for l in lancamentos:
+            if d.get('data_competencia'): l.data_competencia = d['data_competencia']
+            if d.get('data_vencimento'): l.data_vencimento = d['data_vencimento']
+            if d.get('nota_fiscal_ano'): l.nota_fiscal_ano = d['nota_fiscal_ano']
+            if d.get('nota_fiscal_numero'): l.nota_fiscal_numero = d['nota_fiscal_numero']
+            
+            # Se tem data de baixa, caixa e forma, já faz a baixa completa!
+            if d.get('data_baixa') and d.get('caixa') and d.get('forma_baixa'):
+                l.data_baixa = d['data_baixa']
+                l.caixa = d['caixa']
+                l.forma_baixa = d['forma_baixa']
+                l.baixado_por = request.user
+                l.valor_baixado = l.valor
+                l.liquido = l.valor
+            
+            # Se tem data mas não tem caixa ou forma:
+            elif d.get('data_baixa'):
+                if l.data_baixa: # Se já estava baixado, só atualiza a data
+                    l.data_baixa = d['data_baixa']
+                    if d.get('caixa'): l.caixa = d['caixa']
+                    if d.get('forma_baixa'): l.forma_baixa = d['forma_baixa']
+                else: # Se não estava, guarda na lista de pendentes
+                    pendentes_ids.append(l.pk)
+
+            # Se não tem data de baixa, mas tem caixa/forma (opcional)
+            elif d.get('caixa'):
+                l.caixa = d['caixa']
+                l.forma_baixa = d['forma_baixa']
+
+            l.save()
+
+    resposta = HttpResponse(status=204)
+    
+    if pendentes_ids:
+        resposta["HX-Trigger"] = json.dumps({
+            "abrirBaixaPendentes": {
+                "ids": pendentes_ids, 
+                "data": request.POST.get("data_baixa"),
+                "caixa": request.POST.get("caixa"),
+                "forma": request.POST.get("forma_baixa")
+            }
+        })
+    else:
+        resposta["HX-Trigger"] = json.dumps({
+            "infosAtualizadas": {"qtd": len(lancamentos)}
+        })
+        
+    return resposta

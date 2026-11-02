@@ -24,4 +24,5 @@ urlpatterns = [
     path("anexos/<int:pk>/excluir/", views.excluir_anexo, name="excluir_anexo"),
     path("anexos/desfazer-exclusao/", views.desfazer_exclusao_anexo, name="desfazer_exclusao_anexo"),
     path("lancamentos/anexos/lote/", views.salvar_anexo_lote, name="salvar_anexo_lote"),
+    path("lancamentos/editar-infos/", views.editar_infos_lote, name="editar_infos_lote"),
 ]

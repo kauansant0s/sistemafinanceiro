@@ -155,3 +155,15 @@ class BaixaForm(forms.Form):
         input_formats=DATA_BR,
         error_messages={"required": "Informe a data de baixa.", "invalid": "Informe a data de baixa no formato dd/mm/aaaa."},
     )
+
+class EdicaoInfosForm(forms.Form):
+    data_competencia = forms.DateField(input_formats=DATA_BR, required=False)
+    data_vencimento = forms.DateField(input_formats=DATA_BR, required=False)
+    data_baixa = forms.DateField(input_formats=DATA_BR, required=False)
+    
+    nota_fiscal_ano = forms.IntegerField(required=False)
+    nota_fiscal_numero = forms.CharField(required=False)
+    
+    # Removemos os erros customizados e deixamos tudo opcional
+    caixa = forms.ModelChoiceField(queryset=Caixa.objects.filter(ativo=True), required=False)
+    forma_baixa = forms.ModelChoiceField(queryset=FormaBaixa.objects.filter(ativo=True), required=False)
