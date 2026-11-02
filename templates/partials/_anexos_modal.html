@@ -1,0 +1,42 @@
+{% load static %}
+<div class="w-full max-w-lg bg-white rounded-2xl shadow-lg border border-[#E3EAE8] p-6 sm:p-7" {% if not lote %}data-lancamento-id="{{ l.pk }}"{% endif %}>
+  <div class="flex items-center justify-between mb-5">
+    <h2 class="text-lg sm:text-xl text-ink">
+      {% if lote %}Anexar documentos em lote{% else %}Anexos do lançamento{% endif %}
+    </h2>
+    <button type="button" class="text-[#6B7B78] hover:text-ink transition-colors" onclick="fecharModalAnexo()">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M6 6L18 18M6 18L18 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+
+  <form {% if lote %}action="{% url 'financeiro:salvar_anexo_lote' %}"{% else %}action="{% url 'financeiro:salvar_anexo' l.pk %}"{% endif %} 
+        method="post" enctype="multipart/form-data"
+        {% if lote %}
+          hx-post="{% url 'financeiro:salvar_anexo_lote' %}" hx-swap="none"
+        {% else %}
+          hx-post="{% url 'financeiro:salvar_anexo' l.pk %}" hx-target="#listaAnexos" hx-swap="innerHTML"
+        {% endif %}
+        class="mb-6">
+    {% csrf_token %}
+    
+    {% if lote %}
+      {% for id in lote_ids %}
+        <input type="hidden" name="ids" value="{{ id }}">
+      {% endfor %}
+    {% endif %}
+
+    <div class="flex items-center gap-3">
+      <input type="file" name="arquivos" multiple accept=".jpg,.jpeg,.png,.pdf" required
+             class="block w-full text-sm text-ink border border-[#CBD5D1] rounded-xl px-3 py-2 cursor-pointer bg-white
+                    file:mr-3 file:py-1.5 file:px-4 file:rounded-lg file:border-0 file:text-sm
+                    file:bg-teal file:text-white hover:file:brightness-95">
+      <button type="submit" class="bg-teal hover:brightness-95 text-white rounded-xl px-5 py-2 text-sm whitespace-nowrap">Anexar</button>
+    </div>
+  </form>
+
+  {% if not lote %}
+    <div id="listaAnexos">
+      {% include "partials/_lista_anexos.html" %}
+    </div>
+  {% endif %}
+</div>

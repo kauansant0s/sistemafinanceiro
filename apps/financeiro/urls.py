@@ -19,4 +19,9 @@ urlpatterns = [
     path("lancamentos/desfazer-exclusao/", views.desfazer_exclusao, name="desfazer_exclusao"),
     path("lancamentos/<int:pk>/versoes/", views.lancamento_versoes, name="lancamento_versoes"),
     path("lancamentos/<int:pk>/restaurar-versao/", views.restaurar_versao, name="restaurar_versao"),
+    path("lancamentos/<int:pk>/anexos/", views.anexos_lancamento, name="anexos_lancamento"),
+    path("lancamentos/<int:pk>/anexos/salvar/", views.salvar_anexo, name="salvar_anexo"),
+    path("anexos/<int:pk>/excluir/", views.excluir_anexo, name="excluir_anexo"),
+    path("anexos/desfazer-exclusao/", views.desfazer_exclusao_anexo, name="desfazer_exclusao_anexo"),
+    path("lancamentos/anexos/lote/", views.salvar_anexo_lote, name="salvar_anexo_lote"),
 ]

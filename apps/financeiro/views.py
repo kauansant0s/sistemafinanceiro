@@ -3,13 +3,13 @@ from django.urls import reverse
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from django.db.models import Q, Sum
+from django.db.models import Q, Sum, Count
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.vary import vary_on_headers
 from django.views.decorators.http import require_http_methods, require_POST
 from .forms import BaixaForm, FiltroLancamentosForm, LancamentoEdicaoForm, LancamentoForm, _valor_br, normalizar
-from .models import Caixa, ContaFinanceira, FormaBaixa, Lancamento, SubCentro
+from .models import Caixa, ContaFinanceira, FormaBaixa, Lancamento, SubCentro, AnexoLancamento
 import json
 from django.db import transaction
 from django.http import HttpResponse, JsonResponse
@@ -86,7 +86,9 @@ def buscar_contas(request):
 def lancamentos(request):
     buscou = bool(request.GET)  # a lista só aparece depois que o usuário pesquisa
     form = FiltroLancamentosForm(request.GET or None)
-    qs = Lancamento.objects.select_related("subcentro__centro", "conta")
+    qs = Lancamento.objects.select_related("subcentro__centro", "conta").annotate(
+        qtd_anexos=Count('anexos')
+    )
 
     if buscou and form.is_valid():
         qs = form.filtrar(qs)
@@ -195,41 +197,66 @@ def lancamento_editar(request, pk):
 @login_required
 @require_POST
 def excluir_lancamentos(request):
-    """Exclui os lançamentos marcados na lista. O histórico (simple-history) guarda quem excluiu."""
     ids = [i for i in request.POST.getlist("ids") if i.isdigit()]
     excluidos = []
+    
+    # Dicionário para guardar os anexos antes de apagar
+    anexos_para_restaurar = {}
+
     with transaction.atomic():
-        # um a um, para o histórico registrar cada exclusão
-        for l in Lancamento.objects.filter(pk__in=ids):  # baixados não se excluem
+        for l in Lancamento.objects.filter(pk__in=ids):
+            # Guarda os dados dos anexos
+            anexos_para_restaurar[l.pk] = [
+                {'arquivo': a.arquivo.name, 'nome_original': a.nome_original, 'criado_por_id': a.criado_por_id} 
+                for a in l.anexos.all()
+            ]
+            
             excluidos.append(l.pk)
             l.delete()
+            
+    # Salva no cache/sessão para usar na hora de desfazer
+    request.session['lancamentos_excluidos_anexos'] = anexos_para_restaurar
+
     resposta = HttpResponse(status=204)
     resposta["HX-Trigger"] = json.dumps({"lancamentosExcluidos": {"qtd": len(excluidos), "ids": excluidos}})
     return resposta
 
-
 @login_required
 @require_POST
 def desfazer_exclusao(request):
-    """Recria, a partir do histórico, lançamentos que o próprio usuário acabou de excluir."""
     ids = [int(i) for i in request.POST.getlist("ids") if i.isdigit()]
-    limite = timezone.now() - timedelta(minutes=2)  # só dá para desfazer o que acabou de acontecer
+    limite = timezone.now() - timedelta(minutes=2)
     qtd = 0
+    
+    # Recupera os anexos salvos na sessão
+    anexos_salvos = request.session.pop('lancamentos_excluidos_anexos', {})
+
     with transaction.atomic():
         for pk in ids:
             if Lancamento.objects.filter(pk=pk).exists():
                 continue
-            registro = (
-                Lancamento.history
-                .filter(id=pk, history_type="-", history_user=request.user, history_date__gte=limite)
-                .order_by("-history_date").first()
-            )
+            
+            # Restaura o Lançamento via simple-history
+            registro = Lancamento.history.filter(id=pk, history_type="-", history_user=request.user, history_date__gte=limite).order_by("-history_date").first()
+            
             if registro is None:
                 continue
+                
             registro.instance.save()
-            # o save() grava "criado em" com a hora de agora; devolve a data original
             Lancamento.objects.filter(pk=pk).update(criado_em=registro.criado_em)
+            
+            # RESTAURA OS ANEXOS DAQUELE LANÇAMENTO
+            anexos_do_lancamento = anexos_salvos.get(str(pk), [])
+            for a in anexos_do_lancamento:
+                AnexoLancamento.objects.create(
+                    lancamento=registro.instance,
+                    arquivo=a['arquivo'],
+                    nome_original=a['nome_original'],
+                    criado_por_id=a['criado_por_id']
+                )
+            
             qtd += 1
+            
     resposta = HttpResponse(status=204)
     resposta["HX-Trigger"] = json.dumps({"lancamentosRestaurados": {"qtd": qtd}})
     return resposta
@@ -376,3 +403,118 @@ def restaurar_versao(request, pk):
     except Exception as e:
         # Retorna o erro real do Python para o JS mostrar
         return HttpResponse(f"Erro: {str(e)}", status=400)
+
+@login_required
+def anexos_lancamento(request, pk):
+    if not request.htmx:
+        return redirect("financeiro:lancamentos")
+    
+    if pk == 0:
+        # Pega os IDs da URL (ex: ?lote_ids=1,2,3)
+        ids_str = request.GET.get("lote_ids", "")
+        lote_ids = [int(i) for i in ids_str.split(",") if i.isdigit()]
+        return render(request, "partials/_anexos_modal.html", {"lote": True, "lote_ids": lote_ids})
+        
+    lancamento = get_object_or_404(Lancamento, pk=pk)
+    anexos = lancamento.anexos.all()
+    return render(request, "partials/_anexos_modal.html", {"l": lancamento, "anexos": anexos})
+
+@login_required
+@require_POST
+def salvar_anexo_lote(request):
+    ids = [int(i) for i in request.POST.getlist("ids") if i.isdigit()]
+    arquivos = request.FILES.getlist("arquivos")
+    
+    # Se a requisição chegou sem IDs ou sem arquivos, devolvemos 400
+    if not ids or not arquivos:
+        return HttpResponse("Nenhum arquivo ou lançamento recebido.", status=400)
+        
+    lancamentos = Lancamento.objects.filter(pk__in=ids)
+    
+    for lancamento in lancamentos:
+        for f in arquivos:
+            AnexoLancamento.objects.create(
+                lancamento=lancamento,
+                arquivo=f,
+                criado_por=request.user
+            )
+            
+    resposta = HttpResponse(status=204)
+    resposta["HX-Trigger"] = json.dumps({
+        "anexoLoteSucesso": {"qtd": len(ids)},
+        "anexoAtualizado": {} 
+    })
+    return resposta
+
+@login_required
+@require_POST
+def salvar_anexo(request, pk):
+    """Recebe o arquivo e salva no banco."""
+    lancamento = get_object_or_404(Lancamento, pk=pk)
+    arquivos = request.FILES.getlist("arquivos")
+    
+    if not arquivos:
+        return HttpResponse("Nenhum arquivo enviado.", status=400)
+
+    for f in arquivos:
+        AnexoLancamento.objects.create(
+            lancamento=lancamento,
+            arquivo=f,
+            criado_por=request.user
+        )
+    
+    anexos = lancamento.anexos.all()
+    
+    resposta = render(request, "partials/_lista_anexos.html", {
+        "l": lancamento,
+        "anexos": anexos
+    })
+    
+    # Dispara o evento para o Javascript recarregar a tabela de trás
+    resposta["HX-Trigger"] = "anexoAtualizado"
+    
+    return resposta
+
+@login_required
+@require_POST
+def excluir_anexo(request, pk):
+    anexo = get_object_or_404(AnexoLancamento, pk=pk)
+    lancamento_id = anexo.lancamento.pk
+    nome_arquivo = anexo.nome_original
+    caminho_arquivo = anexo.arquivo.name
+    
+    request.session['anexo_desfazer'] = {
+        'lancamento_id': lancamento_id,
+        'nome_original': nome_arquivo,
+        'caminho_arquivo': caminho_arquivo
+    }
+    
+    anexo.delete()
+    lancamento = get_object_or_404(Lancamento, pk=lancamento_id)
+    
+    return render(request, "partials/_lista_anexos.html", {
+        "l": lancamento, 
+        "anexos": lancamento.anexos.all(),
+        "mostrar_toast_exclusao": True
+    })
+
+@login_required
+@require_POST
+def desfazer_exclusao_anexo(request):
+    dados = request.session.pop('anexo_desfazer', None)
+    
+    if dados:
+        AnexoLancamento.objects.create(
+            lancamento_id=dados['lancamento_id'],
+            arquivo=dados['caminho_arquivo'],
+            nome_original=dados['nome_original'],
+            criado_por=request.user
+        )
+        lancamento = get_object_or_404(Lancamento, pk=dados['lancamento_id'])
+        return render(request, "partials/_lista_anexos.html", {
+            "l": lancamento, 
+            "anexos": lancamento.anexos.all(),
+            "mostrar_toast_desfazer": True
+        })
+    
+    return HttpResponse("Nada para desfazer", status=400)

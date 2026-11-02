@@ -3,6 +3,8 @@ from django.core.validators import MinValueValidator
 from django.db import models
 from simple_history.models import HistoricalRecords
 from django.conf import settings
+import os
+from django.utils.text import slugify
 
 class Centro(models.Model):
     nome = models.CharField(max_length=50, unique=True)
@@ -130,3 +132,22 @@ class Lancamento(models.Model):
 
     def __str__(self):
         return f"{self.descricao} ({self.valor})"
+
+def upload_anexo_path(instance, filename):
+    # Salva os arquivos numa pasta separada por ID de lançamento
+    return f"anexos/lanc_{instance.lancamento.pk}/{filename}"
+
+class AnexoLancamento(models.Model):
+    lancamento = models.ForeignKey(Lancamento, on_delete=models.CASCADE, related_name="anexos")
+    arquivo = models.FileField(upload_to=upload_anexo_path)
+    nome_original = models.CharField(max_length=255, blank=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    criado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+
+    class Meta:
+        ordering = ["-criado_em"]
+
+    def save(self, *args, **kwargs):
+        if not self.nome_original:
+            self.nome_original = os.path.basename(self.arquivo.name)
+        super().save(*args, **kwargs)

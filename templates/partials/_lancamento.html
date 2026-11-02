@@ -35,9 +35,15 @@
       {% endif %}
 
       <!-- Anexar doc -->
-      <div class="relative group flex items-center">
-        <button type="button" aria-label="Anexar doc" class="hover:opacity-70 transition-opacity" data-tooltip="Anexar doc">
-          <svg width="18" height="18" viewBox="0 0 48 48" fill="none"><path d="M42.8801 22.1L24.5001 40.48C22.2484 42.7317 19.1945 43.9967 16.0101 43.9967C12.8257 43.9967 9.77178 42.7317 7.52009 40.48C5.2684 38.2283 4.00342 35.1744 4.00342 31.99C4.00342 28.8057 5.2684 25.7517 7.52009 23.5L25.9001 5.12002C27.4012 3.6189 29.4372 2.77557 31.5601 2.77557C33.683 2.77557 35.719 3.6189 37.2201 5.12002C38.7212 6.62115 39.5645 8.65711 39.5645 10.78C39.5645 12.9029 38.7212 14.9389 37.2201 16.44L18.8201 34.82C18.0695 35.5706 17.0515 35.9922 15.9901 35.9922C14.9286 35.9922 13.9107 35.5706 13.1601 34.82C12.4095 34.0695 11.9879 33.0515 11.9879 31.99C11.9879 30.9286 12.4095 29.9106 13.1601 29.16L30.1401 12.2" stroke="#1E1E1E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div class="flex items-center">
+        <button type="button" aria-label="Anexar doc" 
+                class="btn-anexar hover:opacity-70 transition-opacity {% if l.qtd_anexos > 0 %}text-teal-dark{% endif %}" 
+                data-id="{{ l.pk }}" 
+                data-tooltip="{% if l.qtd_anexos == 1 %}1 doc. anexado{% elif l.qtd_anexos > 1 %}{{ l.qtd_anexos }} docs. anexados{% else %}Anexar doc{% endif %}">
+          <svg width="18" height="18" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M42.8801 22.1L24.5001 40.48C22.2484 42.7317 19.1945 43.9967 16.0101 43.9967C12.8257 43.9967 9.77178 42.7317 7.52009 40.48C5.2684 38.2283 4.00342 35.1744 4.00342 31.99C4.00342 28.8057 5.2684 25.7517 7.52009 23.5L25.9001 5.12002C27.4012 3.6189 29.4372 2.77557 31.5601 2.77557C33.683 2.77557 35.719 3.6189 37.2201 5.12002C38.7212 6.62115 39.5645 8.65711 39.5645 10.78C39.5645 12.9029 38.7212 14.9389 37.2201 16.44L18.8201 34.82C18.0695 35.5706 17.0515 35.9922 15.9901 35.9922C14.9286 35.9922 13.9107 35.5706 13.1601 34.82C12.4095 34.0695 11.9879 33.0515 11.9879 31.99C11.9879 30.9286 12.4095 29.9106 13.1601 29.16L30.1401 12.2" 
+                  stroke="{% if l.qtd_anexos > 0 %}#4A9F8D{% else %}#1E1E1E{% endif %}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
         </button>
       </div>
 

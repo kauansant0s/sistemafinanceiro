@@ -220,7 +220,7 @@
         <span class="text-sm sm:text-base text-ink">Editar nota fiscal</span>
       </button>
 
-      <button type="button" class="painel-acao w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#F4F7F6] transition-colors cursor-pointer border-t border-[#E3EAE8]">
+      <button type="button" class="btn-anexar painel-acao w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#F4F7F6] transition-colors cursor-pointer border-t border-[#E3EAE8]" data-id="0">
         <svg class="w-5 h-5 shrink-0" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M42.8801 22.1L24.5001 40.48C22.2484 42.7317 19.1945 43.9967 16.0101 43.9967C12.8257 43.9967 9.77178 42.7317 7.52009 40.48C5.2684 38.2283 4.00342 35.1744 4.00342 31.99C4.00342 28.8057 5.2684 25.7517 7.52009 23.5L25.9001 5.12002C27.4012 3.6189 29.4372 2.77557 31.5601 2.77557C33.683 2.77557 35.719 3.6189 37.2201 5.12002C38.7212 6.62115 39.5645 8.65711 39.5645 10.78C39.5645 12.9029 38.7212 14.9389 37.2201 16.44L18.8201 34.82C18.0695 35.5706 17.0515 35.9922 15.9901 35.9922C14.9286 35.9922 13.9107 35.5706 13.1601 34.82C12.4095 34.0695 11.9879 33.0515 11.9879 31.99C11.9879 30.9286 12.4095 29.9106 13.1601 29.16L30.1401 12.2" stroke="#1E1E1E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
@@ -369,6 +369,13 @@
       <!-- Preenchido via JS -->
     </div>
     
+  </div>
+</div>
+
+<!-- Modal de Anexos -->
+<div id="modalAnexos" class="no-print hidden fixed inset-0 z-40 flex items-center justify-center px-4 bg-black/40 backdrop-blur-sm" role="dialog">
+  <div id="conteudoModalAnexos" class="w-full max-w-lg">
+    <!-- O HTMX vai injetar o partial aqui dentro -->
   </div>
 </div>
 
@@ -558,7 +565,7 @@
     // ---- Excluir os lançamentos marcados ----
   const modalExcluir = document.getElementById('modalExcluir');
   const formExcluir = document.getElementById('formExcluir');
-    const toast = document.getElementById('toast');
+  const toast = document.getElementById('toast');
   const toastTexto = document.getElementById('toastTexto');
   const toastDesfazer = document.getElementById('toastDesfazer');
   const toastTimer = document.getElementById('toastTimer');
@@ -568,11 +575,16 @@
   let idsParaDesfazer = [];
 
   // Aviso rápido. Com { desfazer: true } mostra o "Desfazer" e o círculo que esvazia em 5 segundos.
-  function mostrarToast(texto, { desfazer = false } = {}) {
+  function mostrarToast(texto, { desfazer = false, urlDesfazer = null, targetDesfazer = null } = {}) {
     const duracao = desfazer ? 5000 : 3500;
     toastTexto.textContent = texto;
     toastDesfazer.classList.toggle('hidden', !desfazer);
     toastTimer.classList.toggle('hidden', !desfazer);
+    
+    // Guarda as configurações para quando o usuário clicar em desfazer
+    toast.dataset.urlDesfazer = urlDesfazer || '';
+    toast.dataset.targetDesfazer = targetDesfazer || '';
+
     toast.classList.remove('hidden');
 
     if (toastAnimacao) toastAnimacao.cancel();
@@ -586,13 +598,43 @@
     toastTimeout = setTimeout(() => { toast.classList.add('hidden'); idsParaDesfazer = []; }, duracao);
   }
 
+  // Função única para atualizar o fundo
+  function atualizarTabelaFundo() {
+    // Pega a URL atual sem os parâmetros de paginação se quiser, mas aqui usamos a atual
+    htmx.ajax('GET', location.pathname + location.search, { target: '#tabelaResultados', swap: 'innerHTML' });
+  }
+
+  // 1. Escuta o clique no botão "Desfazer"
   toastDesfazer.addEventListener('click', () => {
-    const ids = idsParaDesfazer;
-    idsParaDesfazer = [];
     clearTimeout(toastTimeout);
     toast.classList.add('hidden');
+    
+    // Se for desfazer de um anexo
+    if (toast.dataset.urlDesfazer) {
+      htmx.ajax('POST', toast.dataset.urlDesfazer, { 
+        target: toast.dataset.targetDesfazer, 
+        swap: 'innerHTML' 
+      }).then(() => {
+        atualizarTabelaFundo(); // Atualiza a tabela depois que o POST terminar
+      });
+      return;
+    }
+
+    // Se for desfazer lançamento (o código que você já tinha)
+    const ids = idsParaDesfazer;
+    idsParaDesfazer = [];
     if (ids.length === 0) return;
     htmx.ajax('POST', toast.dataset.desfazerUrl, { target: '#toast', swap: 'none', values: { ids } });
+  });
+
+  // 2. Escuta o evento disparado quando o anexo é excluído (na lista)
+  document.body.addEventListener('htmx:afterRequest', (e) => {
+    const url = e.detail.pathInfo ? e.detail.pathInfo.requestPath : '';
+    
+    // Se acabou de excluir um anexo, atualiza a tabela (o clip vai ficar preto)
+    if (url.includes('/anexos/') && url.includes('/excluir/') && e.detail.successful) {
+      atualizarTabelaFundo();
+    }
   });
 
   function fecharModalExcluir() {
@@ -1070,5 +1112,112 @@
     }
   });
 
+  // --- Abrir Modal de Anexos ---
+  function fecharModalAnexo() {
+    document.getElementById('modalAnexos').classList.add('hidden');
+  }
+
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.btn-anexar');
+    if (!btn) return;
+    e.stopPropagation();
+    
+    const id = btn.dataset.id; 
+    const modal = document.getElementById('modalAnexos');
+    const conteudo = document.getElementById('conteudoModalAnexos');
+    
+    modal.classList.remove('hidden');
+    conteudo.innerHTML = '<div class="bg-white rounded-2xl p-6 text-center text-[#6B7B78]">Carregando...</div>';
+
+    let url = `/lancamentos/${id}/anexos/`;
+
+    // Se for Lote (id = 0), pega os IDs das caixinhas marcadas
+    if (id === '0') {
+      const marcadas = Array.from(resultados.querySelectorAll('.sel-linha:checked')).map(cb => cb.dataset.id);
+      if (marcadas.length > 0) {
+        url += `?lote_ids=${marcadas.join(',')}`;
+      }
+    }
+
+    htmx.ajax('GET', url, { target: '#conteudoModalAnexos', swap: 'innerHTML' });
+    
+    if (typeof fecharPainelAcoes === 'function') fecharPainelAcoes();
+  });
+
+  // Fechar ao clicar fora
+  document.getElementById('modalAnexos').addEventListener('click', (e) => {
+    if (e.target.id === 'modalAnexos') fecharModalAnexo();
+  });
+
+  document.body.addEventListener('anexoAtualizado', () => {
+    // Recarrega apenas a tabela para o ícone do clip voltar ao normal
+    htmx.ajax('GET', location.pathname + location.search, { target: '#tabelaResultados', swap: 'innerHTML' });
+  });
+
+  // Variável global para guardar os dados do anexo excluído
+  let dadosAnexoExcluido = null;
+
+  // Quando um anexo é excluído
+  document.body.addEventListener('anexoExcluido', (e) => {
+    dadosAnexoExcluido = e.detail;
+    mostrarToast('Documento excluído.', { desfazer: true });
+  });
+
+  // Quando o anexo é restaurado
+  document.body.addEventListener('anexoRestaurado', () => {
+    // Pega o ID do lançamento que está salvo no modal
+    const idLanc = document.querySelector('#conteudoModalAnexos .bg-white').dataset.lancamentoId;
+    
+    // Atualiza a lista dentro do modal sem fechá-lo
+    if (idLanc) {
+      htmx.ajax('GET', `/lancamentos/${idLanc}/anexos/`, { target: '#conteudoModalAnexos', swap: 'innerHTML' });
+    }
+    
+    // Atualiza a tabela do fundo (pro ícone de clip voltar a ficar verde)
+    htmx.ajax('GET', location.pathname + location.search, { target: '#tabelaResultados', swap: 'innerHTML' });
+    
+    mostrarToast('Documento restaurado.');
+  });
+
+    // Guarda os dados do anexo excluído
+  let anexoParaDesfazer = null;
+  
+  document.body.addEventListener('guardarAnexoExcluido', (e) => {
+    anexoParaDesfazer = e.detail;
+  });
+
+  // Sobrescreve o clique do "Desfazer" no toast
+  document.getElementById('toastDesfazer').addEventListener('click', () => {
+    if (anexoParaDesfazer) {
+      // Faz o post para desfazer o anexo
+      htmx.ajax('POST', '/anexos/desfazer-exclusao/', {
+        values: anexoParaDesfazer,
+        target: '#listaAnexos', // Joga a lista atualizada de volta no modal
+        swap: 'innerHTML'
+      });
+      anexoParaDesfazer = null; // limpa
+      toast.classList.add('hidden');
+      return;
+    }
+    // (Seu código antigo de desfazer lançamentos continua aqui embaixo...)
+  });
+
+  // Atualiza a tabela atrás quando o anexo volta
+  document.body.addEventListener('anexoRestaurado', () => {
+    htmx.ajax('GET', location.pathname + location.search, { target: '#tabelaResultados', swap: 'innerHTML' });
+    mostrarToast('Documento restaurado.');
+  });
+
+  // Escuta o evento e recarrega apenas a tabela (o modal fica aberto)
+  document.body.addEventListener('anexoAtualizado', () => {
+    htmx.ajax('GET', location.pathname + location.search, { target: '#tabelaResultados', swap: 'innerHTML' });
+  });
+
+  document.body.addEventListener('anexoLoteSucesso', (e) => {
+    document.getElementById('modalAnexos').classList.add('hidden');
+    const qtd = e.detail.qtd || 0;
+    mostrarToast(`Documento anexado em ${qtd} lançamentos.`);
+    // A recarga da tabela já é feita pelo evento 'anexoAtualizado' que mandamos junto
+  });
 </script>
 {% endblock %}
