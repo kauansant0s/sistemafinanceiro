@@ -1,6 +1,7 @@
 import unicodedata
 from decimal import Decimal, InvalidOperation
 from django import forms
+from django.db import models
 from .models import Caixa, Centro, ContaFinanceira, FormaBaixa, Lancamento, SubCentro
 
 DATA_BR = ["%d/%m/%Y"]
@@ -95,6 +96,24 @@ class FiltroLancamentosForm(forms.Form):
         "lancamento": "criado_em__date",
     }
 
+    ordenar = forms.ChoiceField(
+        required=False,
+        choices=[
+            ("vencimento_asc", "Data de vencimento (Crescente)"),
+            ("vencimento_desc", "Data de vencimento (Decrescente)"),
+            ("competencia_asc", "Competência (Crescente)"),
+            ("competencia_desc", "Competência (Decrescente)"),
+            ("lancamento_asc", "Data do lançamento (Crescente)"),
+            ("lancamento_desc", "Data do lançamento (Decrescente)"),
+            ("baixa_asc", "Data de baixa (Crescente)"),
+            ("baixa_desc", "Data de baixa (Decrescente)"),
+            ("valor_asc", "Valor (Menor para Maior)"),
+            ("valor_desc", "Valor (Maior para Menor)"),
+            ("descricao_asc", "Descrição (A-Z)"),
+            ("descricao_desc", "Descrição (Z-A)"),
+        ]
+    )
+
     centro = forms.ModelChoiceField(queryset=Centro.objects.all(), required=False)
     subcentro = forms.ModelChoiceField(queryset=SubCentro.objects.all(), required=False)
     tipo = forms.ChoiceField(choices=[("", "Todos")] + ContaFinanceira.Tipo.choices, required=False)
@@ -139,6 +158,30 @@ class FiltroLancamentosForm(forms.Form):
             qs = qs.filter(observacoes__icontains=d["observacao"])
         if d.get("nota"):
             qs = qs.filter(nota_fiscal_numero__icontains=d["nota"])
+        ordem = self.cleaned_data.get("ordenar")
+        if ordem:
+            mapa_ordem = {
+                "vencimento_asc": "data_vencimento",
+                "vencimento_desc": "-data_vencimento",
+                "competencia_asc": "data_competencia",
+                "competencia_desc": "-data_competencia",
+                "lancamento_asc": "criado_em",
+                "lancamento_desc": "-criado_em",
+                "baixa_asc": "data_baixa",
+                "baixa_desc": "-data_baixa",
+                "valor_asc": "valor",
+                "valor_desc": "-valor",
+                "descricao_asc": "descricao",
+                "descricao_desc": "-descricao",
+            }
+            campo_ordem = mapa_ordem.get(ordem)
+            if campo_ordem:
+                # O nullslast() joga os lançamentos sem data de baixa para o fim
+                if "baixa" in campo_ordem:
+                    qs = qs.order_by(models.F('data_baixa').desc(nulls_last=True)) if 'desc' in campo_ordem else qs.order_by(models.F('data_baixa').asc(nulls_last=True))
+                else:
+                    qs = qs.order_by(campo_ordem)
+
         return qs
 
 class BaixaForm(forms.Form):

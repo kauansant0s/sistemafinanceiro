@@ -9,7 +9,7 @@ from django.utils import timezone
 from django.views.decorators.vary import vary_on_headers
 from django.views.decorators.http import require_http_methods, require_POST
 from .forms import BaixaForm, FiltroLancamentosForm, LancamentoEdicaoForm, LancamentoForm, _valor_br, normalizar, EdicaoInfosForm
-from .models import Caixa, ContaFinanceira, FormaBaixa, Lancamento, SubCentro, AnexoLancamento
+from .models import Caixa, ContaFinanceira, FormaBaixa, Lancamento, SubCentro, AnexoLancamento, BaixaParcial
 import json
 from django.db import transaction
 from django.http import HttpResponse, JsonResponse
@@ -292,25 +292,23 @@ def criar_caixa(request):
 def criar_forma_baixa(request):
     return _opcoes_com_novo(request, FormaBaixa, "Criar nova forma de baixa...", "novo_forma")
 
-
 @login_required
 @require_POST
 def baixar_lancamentos(request):
-    """Baixa os lançamentos marcados. Suporta baixa parcial se for um único item."""
     form = BaixaForm(request.POST)
     ids = [int(i) for i in request.POST.getlist("ids") if i.isdigit()]
-    lancamentos = list(Lancamento.objects.filter(pk__in=ids, data_baixa__isnull=True))
+    # A MÁGICA AQUI: Removemos o data_baixa__isnull=True para permitir baixas em lançamentos que já têm baixa
+    lancamentos = list(Lancamento.objects.filter(pk__in=ids))
     erros = []
 
     if not lancamentos:
-        erros.append("Nenhum lançamento para baixar (os já baixados são ignorados).")
+        erros.append("Nenhum lançamento encontrado.")
     
     for campo_erros in form.errors.values():
         erros.extend(campo_erros)
 
     valores_baixados = {}
     
-    # Se for apenas 1 lançamento, lê o valor digitado (pode ser parcial)
     if len(lancamentos) == 1:
         l = lancamentos[0]
         try:
@@ -322,23 +320,36 @@ def baixar_lancamentos(request):
             erros.append(f"Informe um valor baixado válido para «{l.descricao}».")
         else:
             valores_baixados[l.pk] = valor_pago
-            
-    # Se for mais de 1, assume o valor total (bruto) para todos
     else:
         for l in lancamentos:
-            valores_baixados[l.pk] = l.valor
+            valores_baixados[l.pk] = l.valor # Em lote, assume o valor cheio
 
     if erros:
         return render(request, "partials/baixa_erros.html", {"erros": erros})
 
     with transaction.atomic():
-        for l in lancamentos:  # um a um, para o histórico registrar cada baixa
+        for l in lancamentos:
+            valor_pago = valores_baixados[l.pk]
+            
+            # Cria o registro da baixa parcial com o valor que o usuário digitou agora
+            BaixaParcial.objects.create(
+                lancamento=l,
+                data_baixa=form.cleaned_data["data_baixa"],
+                valor_baixado=valor_pago
+            )
+
+            # Soma o valor pago agora com o que já tinha sido pago antes (se houver)
+            pago_anterior = l.valor_baixado or Decimal('0')
+            total_pago = pago_anterior + valor_pago
+            
             l.data_baixa = form.cleaned_data["data_baixa"]
             l.caixa = form.cleaned_data["caixa"]
             l.forma_baixa = form.cleaned_data["forma_baixa"]
-            l.valor_baixado = valores_baixados[l.pk]
+            l.valor_baixado = total_pago
             l.baixado_por = request.user
-            l.save() # O save() do model vai calcular o liquido sozinho agora
+            
+            # O save() do model vai definir self.liquido = self.valor_baixado
+            l.save()
 
     resposta = HttpResponse(status=204)
     resposta["HX-Trigger"] = json.dumps({"lancamentosBaixados": {"qtd": len(lancamentos)}})
@@ -386,22 +397,36 @@ def restaurar_versao(request, pk):
         return HttpResponse("Data não enviada", status=400)
 
     try:
-        # O parse_datetime lida com o formato de data que vem do JS
         dt_alvo = parse_datetime(data_iso)
-        
-        # Busca o registro histórico exato
         registro = Lancamento.history.get(id=pk, history_date=dt_alvo)
         
-        # O registro.instance tem os dados de como o lançamento estava naquela data.
-        # O .save() vai sobrescrever o atual com os dados antigos.
-        registro.instance.save()
+        with transaction.atomic():
+            # 1. Restaura os dados do lançamento para a versão antiga
+            registro.instance.save()
+            
+            # 2. Limpa as baixas parciais que foram feitas DEPOIS dessa versão que está sendo restaurada
+            # Se a versão restaurada é antes da baixa, as baixas posteriores serão apagadas.
+            BaixaParcial.objects.filter(
+                lancamento_id=pk, 
+                criado_em__gt=dt_alvo
+            ).delete()
+            
+            # 3. Se a versão restaurada indica que o lançamento NÃO estava baixado,
+            # garantimos que os campos de baixa fiquem nulos na tabela principal.
+            if registro.instance.data_baixa is None:
+                Lancamento.objects.filter(pk=pk).update(
+                    valor_baixado=None,
+                    liquido=None,
+                    caixa=None,
+                    forma_baixa=None,
+                    baixado_por=None
+                )
         
         resposta = HttpResponse(status=204)
         resposta["HX-Trigger"] = json.dumps({"versaoRestaurada": {"qtd": 1}})
         return resposta
         
     except Exception as e:
-        # Retorna o erro real do Python para o JS mostrar
         return HttpResponse(f"Erro: {str(e)}", status=400)
 
 @login_required

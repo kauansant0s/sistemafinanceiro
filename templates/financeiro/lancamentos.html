@@ -153,6 +153,31 @@
         <input type="text" name="nota" autocomplete="off" placeholder="Núm. NOTA..."
                value="{{ request.GET.nota }}"
                class="w-44 rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 text-sm sm:text-base outline-none focus:border-teal">
+        
+        <!-- NOVO CAMPO DE ORDENAÇÃO -->
+        <div class="w-64">
+          <select name="ordenar" class="form-select w-full rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 pr-9 text-sm sm:text-base outline-none focus:border-teal">
+            <option value="">Ordenar por...</option>
+            <option value="vencimento_asc" {% if request.GET.ordenar == 'vencimento_asc' %}selected{% endif %}>Data de vencimento (Crescente)</option>
+            <option value="vencimento_desc" {% if request.GET.ordenar == 'vencimento_desc' %}selected{% endif %}>Data de vencimento (Decrescente)</option>
+            
+            <option value="competencia_asc" {% if request.GET.ordenar == 'competencia_asc' %}selected{% endif %}>Data de competência (Crescente)</option>
+            <option value="competencia_desc" {% if request.GET.ordenar == 'competencia_desc' %}selected{% endif %}>Data de competência (Decrescente)</option>
+            
+            <option value="lancamento_asc" {% if request.GET.ordenar == 'lancamento_asc' %}selected{% endif %}>Data do lançamento (Crescente)</option>
+            <option value="lancamento_desc" {% if request.GET.ordenar == 'lancamento_desc' %}selected{% endif %}>Data do lançamento (Decrescente)</option>
+            
+            <option value="baixa_asc" {% if request.GET.ordenar == 'baixa_asc' %}selected{% endif %}>Data de baixa (Crescente)</option>
+            <option value="baixa_desc" {% if request.GET.ordenar == 'baixa_desc' %}selected{% endif %}>Data de baixa (Decrescente)</option>
+
+            <option value="valor_asc" {% if request.GET.ordenar == 'valor_asc' %}selected{% endif %}>Valor (Menor para Maior)</option>
+            <option value="valor_desc" {% if request.GET.ordenar == 'valor_desc' %}selected{% endif %}>Valor (Maior para Menor)</option>
+
+            <option value="descricao_asc" {% if request.GET.ordenar == 'descricao_asc' %}selected{% endif %}>Descrição (A-Z)</option>
+            <option value="descricao_desc" {% if request.GET.ordenar == 'descricao_desc' %}selected{% endif %}>Descrição (Z-A)</option>
+          </select>
+        </div>
+
         <button type="submit" class="bg-teal hover:brightness-95 transition-[filter] text-white rounded-xl px-6 py-2.5 text-sm sm:text-base">Buscar</button>
         <a href="{% url 'financeiro:lancamentos' %}" class="rounded-xl border border-[#CBD5D1] bg-white px-6 py-2.5 text-sm sm:text-base no-underline text-ink hover:bg-[#F4F7F6]">Limpar filtros</a>
 
@@ -331,7 +356,7 @@
   </div>
 </div>
 
-<!-- Modal de Confirmação de Baixa em Lote -->
+<!-- e -->
 <div id="modalConfirmarBaixa" class="no-print hidden fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/40 backdrop-blur-sm" role="dialog">
   <div class="w-full max-w-md bg-white rounded-2xl shadow-lg border border-[#E3EAE8] p-6 sm:p-7">
     <div class="flex items-start gap-4">
@@ -412,6 +437,7 @@
             {% for f in formas_baixa %}<option value="{{ f.pk }}">{{ f.nome }}</option>{% endfor %}
           </select>
         </div>
+      </div>
 
       <div class="mt-6 flex justify-end gap-3">
         <button type="button" onclick="document.getElementById('modalEditarInfos').classList.add('hidden')" class="rounded-xl border border-[#CBD5D1] px-6 py-2.5 text-sm">Cancelar</button>
@@ -766,7 +792,7 @@
 
   function abrirModalBaixa() {
     const marcadas = Array.from(resultados.querySelectorAll('.sel-linha:checked'));
-    const pendentes = marcadas.filter((cb) => !cb.dataset.liquido);
+    const pendentes = marcadas; // Permite baixar/editar qualquer selecionado
     if (pendentes.length === 0) {
       mostrarToast('Os lançamentos selecionados já estão baixados.');
       return;
@@ -791,7 +817,17 @@
 
     if (pendentes.length === 1) {
       const cb = pendentes[0];
-      const centavos = Math.round(parseFloat(cb.dataset.valor) * 100);
+      
+      // 1. Pega o valor total da linha
+      const valorTotal = Math.round(parseFloat(cb.dataset.valor) * 100);
+      
+      // 2. Pega o valor que já foi baixado (se houver). O data-liquido guarda o valor pago anterior.
+      // Se não tiver nada, é zero.
+      const valorJaPago = cb.dataset.liquido ? Math.round(parseFloat(cb.dataset.liquido) * 100) : 0;
+      
+      // 3. Calcula o restante
+      const valorRestante = valorTotal - valorJaPago;
+
       const item = document.createElement('li');
       item.className = 'flex items-center justify-between gap-3';
 
@@ -800,9 +836,11 @@
       const nome = document.createElement('p');
       nome.className = 'break-words';
       nome.textContent = cb.closest('tr').children[2].textContent.trim();
+      
+      // Texto mostrando o restante
       const bruto = document.createElement('p');
       bruto.className = 'text-[#6B7B78]';
-      bruto.textContent = 'Valor do lançamento: ' + formatarBRL(centavos);
+      bruto.textContent = 'Valor restante para baixar: ' + formatarBRL(valorRestante);
       texto.appendChild(nome);
       texto.appendChild(bruto);
 
@@ -812,15 +850,18 @@
       campo.inputMode = 'numeric';
       campo.autocomplete = 'off';
       campo.className = 'edit-valor w-36 shrink-0 text-right rounded-xl border border-[#CBD5D1] bg-white px-3 py-2 text-sm outline-none focus:border-teal';
-      campo.value = 'R$ ' + (centavos / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      
+      // Já preenche o input com o valor restante
+      campo.value = 'R$ ' + (valorRestante / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
       item.appendChild(texto);
       item.appendChild(campo);
       lista.appendChild(item);
       
-      resumo.textContent = '1 lançamento. Você pode ajustar o valor caso seja uma baixa parcial.';
+      resumo.textContent = '1 lançamento. Preencha os dados para baixar o valor restante.';
       lista.classList.remove('hidden');
       baixaValoresWrap.classList.remove('hidden');
+      
     } else {
       baixaValoresWrap.classList.add('hidden');
       resumo.textContent = pendentes.length + ' lançamentos selecionados. O valor total de todos será baixado.';
@@ -945,19 +986,80 @@
 
   // --- Tooltip Global e Modal de Versões ---
   const tooltipGlobal = document.getElementById('tooltipGlobal');
+  const tabelaResultados = document.getElementById('tabelaResultados');
   const modalVersoes = document.getElementById('modalVersoes');
   const versoesConteudo = document.getElementById('versoesConteudo');
 
-  resultados.addEventListener('mouseover', (e) => {
-    const el = e.target.closest('[data-tooltip]');
-    if (!el) return;
-    tooltipGlobal.textContent = el.dataset.tooltip;
-    tooltipGlobal.classList.remove('hidden');
-  });
+  if (tabelaResultados) {
+    tabelaResultados.addEventListener('mouseover', (e) => {
+      const el = e.target.closest('[data-tooltip]');
+      if (!el) return;
+      tooltipGlobal.textContent = el.dataset.tooltip;
+      tooltipGlobal.classList.remove('hidden');
+    });
 
-  resultados.addEventListener('mouseout', (e) => {
-    if (e.target.closest('[data-tooltip]')) tooltipGlobal.classList.add('hidden');
-  });
+    tabelaResultados.addEventListener('mouseout', (e) => {
+      if (e.target.closest('[data-tooltip]')) tooltipGlobal.classList.add('hidden');
+    });
+
+    tabelaResultados.addEventListener('click', async (e) => {
+      const btn = e.target.closest('.btn-versoes');
+      if (!btn) return;
+
+      const id = btn.dataset.id;
+      versoesConteudo.innerHTML = '<p class="text-sm text-[#6B7B78] animate-pulse">Carregando histórico...</p>';
+      modalVersoes.classList.remove('hidden');
+
+      try {
+        const resp = await fetch(`/lancamentos/${id}/versoes/`, { headers: { 'HX-Request': 'true' } });
+        if (!resp.ok) throw new Error('Erro na resposta');
+        const data = await resp.json();
+        
+        if (data.versoes.length === 0) {
+          versoesConteudo.innerHTML = '<p class="text-sm text-[#6B7B78]">Nenhuma versão encontrada.</p>';
+          return;
+        }
+
+        let html = '<div class="flex flex-col gap-4">';
+        data.versoes.forEach((v, index) => {
+          const isAtual = index === 0;
+          const corBorda = isAtual ? 'border-teal' : 'border-[#E3EAE8]';
+          const bgBadge = isAtual ? 'bg-teal text-white' : 'bg-[#F4F7F6] text-[#4A5B57]';
+          
+          const btnRestaurar = !isAtual ? `
+            <button type="button" class="btn-restaurar text-xs text-[#2563EB] hover:underline mt-3" data-id="${id}" data-date="${v.iso_date}">
+              Restaurar esta versão
+            </button>
+          ` : '';
+
+          html += `
+            <div class="border ${corBorda} rounded-xl p-4 relative flex flex-col">
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-medium px-2 py-1 rounded-md ${bgBadge}">${v.acao} ${isAtual ? '(Atual)' : ''}</span>
+                <span class="text-xs text-[#6B7B78]">${v.data} • ${v.usuario}</span>
+              </div>
+              <div class="grid grid-cols-2 gap-2 text-sm">
+                <div><span class="text-[#6B7B78]">Descrição:</span> ${v.descricao}</div>
+                <div><span class="text-[#6B7B78]">Valor:</span> R$ ${v.valor.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</div>
+                <div><span class="text-[#6B7B78]">Líquido:</span> ${v.liquidado ? 'R$ ' + v.liquidado.toLocaleString('pt-BR', {minimumFractionDigits: 2}) : '—'}</div>
+                <div><span class="text-[#6B7B78]">Baixado em:</span> ${v.baixado_em || '—'}</div>
+              </div>
+              ${btnRestaurar}
+            </div>
+          `;
+        });
+        html += '</div>';
+        versoesConteudo.innerHTML = html;
+
+      } catch (err) {
+        versoesConteudo.innerHTML = '<p class="text-sm text-[#B91C1C]">Erro ao carregar o histórico.</p>';
+        console.error(err);
+      }
+    });
+  }
+
+  document.getElementById('modalVersoesFechar').addEventListener('click', () => modalVersoes.classList.add('hidden'));
+  modalVersoes.addEventListener('click', (e) => { if (e.target === modalVersoes) modalVersoes.classList.add('hidden'); });
 
   document.addEventListener('mousemove', (e) => {
     if (!tooltipGlobal.classList.contains('hidden')) {
@@ -966,64 +1068,6 @@
       tooltipGlobal.style.top = (e.clientY - 30) + 'px';
     }
   });
-
-  resultados.addEventListener('click', async (e) => {
-    const btn = e.target.closest('.btn-versoes');
-    if (!btn) return;
-
-    const id = btn.dataset.id;
-    versoesConteudo.innerHTML = '<p class="text-sm text-[#6B7B78] animate-pulse">Carregando histórico...</p>';
-    modalVersoes.classList.remove('hidden');
-
-    try {
-      const resp = await fetch(`/lancamentos/${id}/versoes/`, { headers: { 'HX-Request': 'true' } });
-      if (!resp.ok) throw new Error('Erro na resposta');
-      const data = await resp.json();
-      
-      if (data.versoes.length === 0) {
-        versoesConteudo.innerHTML = '<p class="text-sm text-[#6B7B78]">Nenhuma versão encontrada.</p>';
-        return;
-      }
-
-      let html = '<div class="flex flex-col gap-4">';
-      data.versoes.forEach((v, index) => {
-        const isAtual = index === 0;
-        const corBorda = isAtual ? 'border-teal' : 'border-[#E3EAE8]';
-        const bgBadge = isAtual ? 'bg-teal text-white' : 'bg-[#F4F7F6] text-[#4A5B57]';
-        
-        const btnRestaurar = !isAtual ? `
-          <button type="button" class="btn-restaurar text-xs text-[#2563EB] hover:underline mt-3" data-id="${id}" data-date="${v.iso_date}">
-            Restaurar esta versão
-          </button>
-        ` : '';
-
-        html += `
-          <div class="border ${corBorda} rounded-xl p-4 relative flex flex-col">
-            <div class="flex items-center justify-between mb-3">
-              <span class="text-xs font-medium px-2 py-1 rounded-md ${bgBadge}">${v.acao} ${isAtual ? '(Atual)' : ''}</span>
-              <span class="text-xs text-[#6B7B78]">${v.data} • ${v.usuario}</span>
-            </div>
-            <div class="grid grid-cols-2 gap-2 text-sm">
-              <div><span class="text-[#6B7B78]">Descrição:</span> ${v.descricao}</div>
-              <div><span class="text-[#6B7B78]">Valor:</span> R$ ${v.valor.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</div>
-              <div><span class="text-[#6B7B78]">Líquido:</span> ${v.liquidado ? 'R$ ' + v.liquidado.toLocaleString('pt-BR', {minimumFractionDigits: 2}) : '—'}</div>
-              <div><span class="text-[#6B7B78]">Baixado em:</span> ${v.baixado_em || '—'}</div>
-            </div>
-            ${btnRestaurar}
-          </div>
-        `;
-      });
-      html += '</div>';
-      versoesConteudo.innerHTML = html;
-
-    } catch (err) {
-      versoesConteudo.innerHTML = '<p class="text-sm text-[#B91C1C]">Erro ao carregar o histórico.</p>';
-      console.error(err);
-    }
-  });
-
-  document.getElementById('modalVersoesFechar').addEventListener('click', () => modalVersoes.classList.add('hidden'));
-  modalVersoes.addEventListener('click', (e) => { if (e.target === modalVersoes) modalVersoes.classList.add('hidden'); });
 
   document.addEventListener('click', async (e) => {
     const btn = e.target.closest('.btn-restaurar');

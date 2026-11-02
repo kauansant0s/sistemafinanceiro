@@ -115,18 +115,25 @@ class Lancamento(models.Model):
     @property
     def baixado(self):
         return self.data_baixa is not None
+
+    @property
+    def saldo_restante(self):
+        if self.valor_baixado:
+            return self.valor - self.valor_baixado
+        return self.valor
     
     def save(self, *args, **kwargs):
         self.descricao = self.descricao.upper()
         
         if self.data_baixa:
-            # Se o usuário digitou um valor baixado no modal, usamos ele.
-            # Se não digitou (ou se baixou em lote), o valor baixado é o bruto.
             if self.valor_baixado is None:
                 self.valor_baixado = self.valor
             
-            # O líquido agora é o valor baixado. (No futuro, aqui entra a conta de imposto)
+            # Se o valor baixado for igual ao valor cheio, o líquido é o próprio valor
+            # Se houve desconto (valor_baixado menor), o líquido é o que foi pago
             self.liquido = self.valor_baixado
+        else:
+            self.liquido = None
             
         super().save(*args, **kwargs)
 
@@ -151,3 +158,16 @@ class AnexoLancamento(models.Model):
         if not self.nome_original:
             self.nome_original = os.path.basename(self.arquivo.name)
         super().save(*args, **kwargs)
+
+# Em apps/financeiro/models.py
+class BaixaParcial(models.Model):
+    lancamento = models.ForeignKey(Lancamento, on_delete=models.CASCADE, related_name='baixas_parciais')
+    data_baixa = models.DateField()
+    valor_baixado = models.DecimalField(max_digits=12, decimal_places=2)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['data_baixa']
+
+    def __str__(self):
+        return f"{self.data_baixa} - R$ {self.valor_baixado}"
