@@ -606,3 +606,14 @@ def editar_infos_lote(request):
         })
         
     return resposta
+
+@login_required
+def carregar_campos_lancamento(request):
+    tipo = request.GET.get('tipo')
+    form = LancamentoForm()
+    
+    # Retorna o template parcial só com os outros campos
+    return render(request, 'financeiro/partials/_campos_lancamento.html', {
+        'form': form,
+        'tipo_selecionado': tipo
+    })

@@ -1,0 +1,173 @@
+<!-- Guarda o tipo escolhido (Receita/Despesa) para o Django não esquecer -->
+<input type="hidden" name="tipo_lancamento" value="{{ tipo_selecionado }}">
+
+<!-- Centro e Subcentro -->
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
+  <div>
+    <label for="centro" class="block text-sm sm:text-base mb-2">Centro</label>
+    <select id="centro" name="centro"
+            hx-get="{% url 'financeiro:subcentros' %}" hx-trigger="change"
+            hx-target="#subcentro" hx-swap="innerHTML"
+            class="form-select w-full rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 pr-9 text-sm sm:text-base outline-none focus:border-teal">
+      <option value="" disabled selected>Selecione um Centro...</option>
+      {% for c in form.fields.centro.queryset %}
+      <option value="{{ c.pk }}">{{ c.nome }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div>
+    <label for="subcentro" class="block text-sm sm:text-base mb-2">Sub-Centro</label>
+    <select id="subcentro" name="subcentro"
+            class="form-select w-full rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 pr-9 text-sm sm:text-base outline-none focus:border-teal">
+      <option value="" disabled selected>Selecione um Centro primeiro...</option>
+    </select>
+  </div>
+</div>
+
+<!-- Receita/Despesa (Busca de Conta) -->
+<div id="contaField" class="mt-5 sm:mt-6 relative">
+  <label for="contaBusca" class="block text-sm sm:text-base mb-2">Receita/Despesa</label>
+  <input type="text" id="contaBusca" name="q" autocomplete="off"
+         placeholder="Digite o código ou a descrição..."
+         hx-get="{% url 'financeiro:buscar_contas' %}" hx-trigger="input changed delay:200ms"
+         hx-target="#contaResultados" hx-swap="innerHTML"
+         class="w-full rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 text-sm sm:text-base outline-none focus:border-teal">
+  <input type="hidden" id="contaId" name="conta" value="">
+  <div id="contaResultados" class="hidden absolute left-0 right-0 mt-1 bg-white border border-[#CBD5D1] rounded-xl shadow-md overflow-hidden z-10"></div>
+</div>
+
+<!-- Campos do Resto -->
+<div id="restoCampos">
+
+  <div class="mt-5 sm:mt-6">
+    <label for="descricao" class="block text-sm sm:text-base mb-2">Descrição</label>
+    <input type="text" id="descricao" name="descricao" autocomplete="off"
+           placeholder="DESCRIÇÃO DO LANÇAMENTO..."
+           class="uppercase w-full rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 text-sm sm:text-base outline-none focus:border-teal">
+  </div>
+
+  <div class="mt-5 sm:mt-6">
+    <label for="observacoes" class="block text-sm sm:text-base mb-2">Observações</label>
+    <input type="text" id="observacoes" name="observacoes" autocomplete="off"
+           placeholder="Observações..."
+           class="w-full rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 text-sm sm:text-base outline-none focus:border-teal">
+  </div>
+
+  <!-- Nota Fiscal -->
+  <div class="mt-5 sm:mt-6 grid grid-cols-2 gap-5 sm:gap-6">
+    <div>
+      <label for="notaAno" class="block text-sm sm:text-base mb-2">Nota fiscal (ano)</label>
+      <input type="text" id="notaAno" name="nota_fiscal_ano" inputmode="numeric" maxlength="4" tabindex="-1"
+             class="w-full rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 text-sm sm:text-base outline-none focus:border-teal">
+    </div>
+    <div>
+      <label for="notaNumero" class="block text-sm sm:text-base mb-2">Nota fiscal (número)</label>
+      <input type="text" id="notaNumero" name="nota_fiscal_numero" autocomplete="off"
+             class="w-full rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 text-sm sm:text-base outline-none focus:border-teal">
+    </div>
+  </div>
+
+  <!-- Valor -->
+  <div class="mt-5 sm:mt-6">
+    <label for="valor" class="block text-sm sm:text-base mb-2">Valor</label>
+    <input type="text" id="valor" name="valor" inputmode="numeric" autocomplete="off" placeholder="R$ 0,00"
+           class="w-full rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 text-sm sm:text-base outline-none focus:border-teal">
+  </div>
+
+  <!-- Datas -->
+  <div class="mt-5 sm:mt-6 grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
+    <div>
+      <label for="dataCompetencia" class="block text-sm sm:text-base mb-2">Competência</label>
+      <input type="text" id="dataCompetencia" name="data_competencia" autocomplete="off" placeholder="dd/mm/aaaa"
+             class="w-full rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 text-sm sm:text-base outline-none focus:border-teal">
+    </div>
+    <div>
+      <label for="dataVencimento" class="block text-sm sm:text-base mb-2">Vencimento</label>
+      <input type="text" id="dataVencimento" name="data_vencimento" autocomplete="off" placeholder="dd/mm/aaaa"
+             class="w-full rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 text-sm sm:text-base outline-none focus:border-teal">
+    </div>
+  </div>
+
+  <!-- Anexo (opcional, vindo do seu código antigo) -->
+  <div class="mt-5 sm:mt-6">
+    <label for="anexoInput" class="block text-sm sm:text-base mb-2">Anexo (Opcional)</label>
+    <input type="file" id="anexoInput" name="anexo"
+           accept=".jpg,.jpeg,.png,.pdf"
+           class="block w-full text-sm sm:text-base text-ink file:mr-4 file:rounded-xl file:border-0 file:bg-teal file:px-5 file:py-2.5 file:text-white file:cursor-pointer hover:file:brightness-95 cursor-pointer">
+  </div>
+
+</div>
+
+<!-- Script que roda assim que o HTMX injetar esse HTML na tela -->
+<script>
+  // 1. Mostra os botões de Salvar/Cancelar
+  document.getElementById('acoesFormulario').classList.remove('hidden');
+
+  // 2. Reaplica as máscaras e o Flatpickr nos campos que acabaram de chegar
+  const formLanc = document.getElementById('lancamentoForm');
+  const contaBusca = document.getElementById('contaBusca');
+  const contaId = document.getElementById('contaId');
+  const contaResultados = document.getElementById('contaResultados');
+  const descricao = document.getElementById('descricao');
+  const valor = document.getElementById('valor');
+  const notaAno = document.getElementById('notaAno');
+
+  // Se for Receita, pré-preenche o ano da nota com o atual
+  if ("{{ tipo_selecionado }}" === "receita" && !notaAno.value) {
+    notaAno.value = formLanc.dataset.ano;
+  }
+
+  // Preenche a conta ao clicar no resultado da busca
+  contaResultados.addEventListener('click', (e) => {
+    const opcao = e.target.closest('.conta-opcao');
+    if (!opcao) return;
+    contaId.value = opcao.dataset.id;
+    contaBusca.value = opcao.dataset.texto;
+    contaResultados.innerHTML = '';
+    contaResultados.classList.add('hidden');
+    descricao.focus();
+  });
+
+  // Fecha a busca de contas se clicar fora
+  document.addEventListener('click', (e) => {
+    if (!contaBusca.parentElement.contains(e.target)) {
+      contaResultados.classList.add('hidden');
+    }
+  });
+
+  // Descrição sempre em maiúsculas
+  descricao.addEventListener('input', () => {
+    const pos = descricao.selectionStart;
+    descricao.value = descricao.value.toUpperCase();
+    descricao.setSelectionRange(pos, pos);
+  });
+
+  // Máscara do valor
+  valor.addEventListener('input', () => {
+    const digitos = valor.value.replace(/\D/g, '').slice(0, 12);
+    if (!digitos) { valor.value = ''; return; }
+    const numero = parseInt(digitos, 10) / 100;
+    valor.value = 'R$ ' + numero.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  });
+
+  // Flatpickr e máscara nas datas
+  ['dataCompetencia', 'dataVencimento'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el && !el._flatpickr) {
+      flatpickr(el, { locale: 'pt', dateFormat: 'd/m/Y', allowInput: true });
+      el.addEventListener('input', () => {
+        const d = el.value.replace(/\D/g, '').slice(0, 8);
+        let saida = d;
+        if (d.length > 4) saida = d.slice(0, 2) + '/' + d.slice(2, 4) + '/' + d.slice(4);
+        else if (d.length > 2) saida = d.slice(0, 2) + '/' + d.slice(2);
+        el.value = saida;
+      });
+    }
+  });
+
+  // Só números na nota fiscal
+  notaAno.addEventListener('input', (e) => { e.target.value = e.target.value.replace(/\D/g, '').slice(0, 4); });
+  document.getElementById('notaNumero').addEventListener('input', (e) => { e.target.value = e.target.value.replace(/\D/g, ''); });
+
+</script>
