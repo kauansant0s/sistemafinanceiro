@@ -45,63 +45,78 @@
       <div class="w-full max-w-2xl">
         <h2 class="text-center text-2xl sm:text-3xl tracking-wide mb-4 sm:mb-6">Calendário</h2>
 
+        <!-- Barra de Navegação do Calendário -->
         <div class="relative flex items-center justify-center gap-6 sm:gap-10 mb-4 sm:mb-6">
-          <button id="calPrev" type="button" aria-label="Mês anterior" class="text-xl sm:text-2xl px-2 select-none">&lt;</button>
-          <span id="calLabel" class="text-lg sm:text-2xl tracking-wide whitespace-nowrap text-center w-[16ch] sm:w-[15ch] shrink-0"></span>
-          <button id="calNext" type="button" aria-label="Próximo mês" class="text-xl sm:text-2xl px-2 select-none">&gt;</button>
           
-          <button id="calToday" type="button" aria-label="Ir para mês/ano"
-            class="absolute left-0 top-1/2 -translate-y-1/2 flex items-center justify-center">
+          <!-- Botão Esquerdo (Calendário Popup) -->
+          <button id="calToday" type="button" aria-label="Ir para mês/ano" class="absolute left-0 top-1/2 -translate-y-1/2 flex items-center justify-center">
             <svg width="28" height="28" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M32 4V12M16 4V12M6 20H42M10 8H38C40.2091 8 42 9.79086 42 12V40C42 42.2091 40.2091 44 38 44H10C7.79086 44 6 42.2091 6 40V12C6 9.79086 7.79086 8 10 8Z"
-                    stroke="#1E1E1E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M32 4V12M16 4V12M6 20H42M10 8H38C40.2091 8 42 9.79086 42 12V40C42 42.2091 40.2091 44 38 44H10C7.79086 44 6 42.2091 6 40V12C6 9.79086 7.79086 8 10 8Z" stroke="#1E1E1E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
-            <span id="calTodayTooltip"
-              class="pointer-events-none absolute left-0 top-full mt-2 whitespace-normal w-64 bg-[#1E1E1E] text-white text-[11px] sm:text-xs px-2.5 py-1.5 rounded-md opacity-0 transition-opacity duration-150 z-40 leading-snug">
+            <span id="calTodayTooltip" class="pointer-events-none absolute left-0 top-full mt-2 whitespace-normal w-64 bg-[#1E1E1E] text-white text-[11px] sm:text-xs px-2.5 py-1.5 rounded-md opacity-0 transition-opacity duration-150 z-40 leading-snug">
               Um clique: digitar mês/ano desejado.<br>Dois cliques: ir para o mês atual.
             </span>
           </button>
 
-          <!-- Popup para digitar mês/ano -->
-          <div id="calGotoPopup"
-              class="hidden absolute left-0 top-full mt-2 z-30 bg-white border border-[#E3EAE8] rounded-xl shadow-lg p-3 w-56">
-            <label class="block text-[11px] uppercase tracking-wide text-[#6B6B6B] mb-1">Mês</label>
-            <select id="calGotoMes"
-                    class="w-full mb-2 px-2 py-1.5 text-sm rounded-lg border border-[#E3EAE8] bg-white outline-none">
-              <!-- preenchido via JS -->
-            </select>
+          <!-- Setas e Mês -->
+          <button id="calPrev" type="button" aria-label="Mês anterior" class="text-xl sm:text-2xl px-2 select-none">&lt;</button>
+          <span id="calLabel" class="text-lg sm:text-2xl tracking-wide whitespace-nowrap text-center w-[16ch] sm:w-[15ch] shrink-0"></span>
+          <button id="calNext" type="button" aria-label="Próximo mês" class="text-xl sm:text-2xl px-2 select-none">&gt;</button>
 
-            <label class="block text-[11px] uppercase tracking-wide text-[#6B6B6B] mb-1">Ano</label>
-            <input id="calGotoAno" type="number" inputmode="numeric"
-                  class="w-full mb-3 px-2 py-1.5 text-sm rounded-lg border border-[#E3EAE8] bg-white outline-none" />
+          <!-- Agrupamento de botões da Direita (Olho, Impressora, Engrenagem) -->
+          <div class="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-3 sm:gap-5">
+            
+            <!-- Olho (Mostrar/Ocultar Concluídas) -->
+            <button id="calToggleDone" type="button" aria-label="Mostrar/ocultar tarefas concluídas" class="relative flex items-center justify-center">
+              <svg id="eyeOpen" width="28" height="28" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M1.66675 20C1.66675 20 8.33342 6.66666 20.0001 6.66666C31.6667 6.66666 38.3334 20 38.3334 20C38.3334 20 31.6667 33.3333 20.0001 33.3333C8.33342 33.3333 1.66675 20 1.66675 20Z" stroke="#1E1E1E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M20.0001 25C22.7615 25 25.0001 22.7614 25.0001 20C25.0001 17.2386 22.7615 15 20.0001 15C17.2387 15 15.0001 17.2386 15.0001 20C15.0001 22.7614 17.2387 25 20.0001 25Z" stroke="#1E1E1E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <svg id="eyeClosed" class="hidden" width="28" height="28" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M35.88 35.88C32.4612 38.486 28.2982 39.9297 24 40C10 40 2 24 2 24C4.48778 19.3638 7.93827 15.3132 12.12 12.12M19.8 8.48C21.1767 8.15776 22.5861 7.99668 24 8C38 8 46 24 46 24C44.786 26.2712 43.3381 28.4095 41.68 30.38M28.24 28.24C27.6907 28.8295 27.0283 29.3023 26.2923 29.6302C25.5563 29.9582 24.7618 30.1345 23.9562 30.1487C23.1506 30.1629 22.3503 30.0148 21.6032 29.713C20.8561 29.4112 20.1774 28.9621 19.6077 28.3923C19.0379 27.8226 18.5888 27.1439 18.287 26.3968C17.9852 25.6497 17.8371 24.8494 17.8513 24.0438C17.8655 23.2382 18.0418 22.4437 18.3698 21.7077C18.6977 20.9717 19.1705 20.3093 19.76 19.76M2 2L46 46" stroke="#1E1E1E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span id="eyeTooltip" class="pointer-events-none absolute right-0 top-full mt-2 whitespace-nowrap bg-[#1E1E1E] text-white text-[11px] sm:text-xs px-2.5 py-1.5 rounded-md opacity-0 transition-opacity duration-150 z-50"></span>
+            </button>
 
-            <div class="flex items-center justify-end gap-2">
-              <button id="calGotoCancelar" type="button"
-                      class="text-xs px-3 py-1.5 rounded-lg text-[#6B6B6B] hover:bg-[#F4F7F6]">Cancelar</button>
-              <button id="calGotoIr" type="button"
-                      class="text-xs px-3 py-1.5 rounded-lg bg-teal text-white hover:brightness-95">Ir</button>
-            </div>
+            <!-- Impressora -->
+            <button id="calPrint" type="button" aria-label="Imprimir calendário" class="relative flex items-center justify-center">
+              <svg width="24" height="24" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M9.99992 15V3.33331H29.9999V15M9.99992 30H6.66659C5.78253 30 4.93468 29.6488 4.30956 29.0237C3.68444 28.3985 3.33325 27.5507 3.33325 26.6666V18.3333C3.33325 17.4493 3.68444 16.6014 4.30956 15.9763C4.93468 15.3512 5.78253 15 6.66659 15H33.3333C34.2173 15 35.0652 15.3512 35.6903 15.9763C36.3154 16.6014 36.6666 17.4493 36.6666 18.3333V26.6666C36.6666 27.5507 36.3154 28.3985 35.6903 29.0237C35.0652 29.6488 34.2173 30 33.3333 30H29.9999M9.99992 23.3333H29.9999V36.6666H9.99992V23.3333Z" stroke="#1E1E1E" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span id="printTooltip" class="pointer-events-none absolute right-0 top-full mt-2 whitespace-nowrap bg-[#1E1E1E] text-white text-[11px] sm:text-xs px-2.5 py-1.5 rounded-md opacity-0 transition-opacity duration-150 z-50">Imprimir calendário</span>
+            </button>
+
+            <!-- Engrenagem (Configurações) -->
+            <button id="calSettings" type="button" aria-label="Configurações do Calendário" class="relative flex items-center justify-center">
+              <svg width="24" height="24" viewBox="0 0 55 55" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <g clip-path="url(#clip0_87_15)">
+                  <path d="M34.3751 27.5C34.3751 31.2969 31.297 34.375 27.5001 34.375C23.7031 34.375 20.6251 31.2969 20.6251 27.5C20.6251 23.703 23.7031 20.625 27.5001 20.625C31.297 20.625 34.3751 23.703 34.3751 27.5ZM44.4584 34.375C44.1534 35.0662 44.0624 35.8329 44.1972 36.5763C44.3319 37.3197 44.6864 38.0057 45.2147 38.5458L45.3522 38.6833C45.7783 39.109 46.1164 39.6145 46.347 40.1709C46.5777 40.7273 46.6964 41.3237 46.6964 41.926C46.6964 42.5283 46.5777 43.1247 46.347 43.6811C46.1164 44.2376 45.7783 44.743 45.3522 45.1687C44.9265 45.5949 44.421 45.9329 43.8646 46.1636C43.3082 46.3942 42.7118 46.5129 42.1095 46.5129C41.5071 46.5129 40.9107 46.3942 40.3543 46.1636C39.7979 45.9329 39.2924 45.5949 38.8667 45.1687L38.7292 45.0312C38.1892 44.5029 37.5032 44.1485 36.7598 44.0137C36.0164 43.8789 35.2496 43.9699 34.5584 44.275C33.8806 44.5655 33.3025 45.0478 32.8954 45.6626C32.4882 46.2775 32.2697 46.9979 32.2667 47.7354V48.125C32.2667 49.3405 31.7839 50.5063 30.9243 51.3659C30.0648 52.2254 28.899 52.7083 27.6834 52.7083C26.4678 52.7083 25.3021 52.2254 24.4425 51.3659C23.583 50.5063 23.1001 49.3405 23.1001 48.125V47.9187C23.0823 47.1602 22.8368 46.4245 22.3954 45.8074C21.954 45.1903 21.3372 44.7202 20.6251 44.4583C19.9339 44.1532 19.1671 44.0622 18.4237 44.197C17.6803 44.3318 16.9943 44.6862 16.4542 45.2145L16.3167 45.352C15.8911 45.7782 15.3856 46.1162 14.8292 46.3469C14.2728 46.5776 13.6764 46.6963 13.074 46.6963C12.4717 46.6963 11.8753 46.5776 11.3189 46.3469C10.7625 46.1162 10.257 45.7782 9.83133 45.352C9.40519 44.9264 9.06713 44.4209 8.83647 43.8645C8.60582 43.3081 8.4871 42.7117 8.4871 42.1093C8.4871 41.507 8.60582 40.9106 8.83647 40.3542C9.06713 39.7978 9.40519 39.2923 9.83133 38.8666L9.96883 38.7291C10.4971 38.189 10.8515 37.503 10.9863 36.7596C11.1211 36.0162 11.0301 35.2495 10.7251 34.5583C10.4346 33.8805 9.95223 33.3024 9.3374 32.8952C8.72257 32.4881 8.00209 32.2696 7.26466 32.2666H6.87508C5.65951 32.2666 4.49372 31.7837 3.63418 30.9242C2.77463 30.0647 2.29175 28.8989 2.29175 27.6833C2.29175 26.4677 2.77463 25.3019 3.63418 24.4424C4.49372 23.5828 5.65951 23.1 6.87508 23.1H7.08133C7.83986 23.0822 8.57551 22.8367 9.19264 22.3953C9.80978 21.9539 10.2798 21.3371 10.5417 20.625C10.8468 19.9338 10.9378 19.167 10.803 18.4236C10.6682 17.6802 10.3138 16.9942 9.7855 16.4541L9.648 16.3166C9.22186 15.891 8.88379 15.3855 8.65314 14.8291C8.42249 14.2727 8.30377 13.6762 8.30377 13.0739C8.30377 12.4716 8.42249 11.8752 8.65314 11.3188C8.88379 10.7624 9.22186 10.2569 9.648 9.83121C10.0737 9.40507 10.5792 9.06701 11.1356 8.83635C11.692 8.6057 12.2884 8.48698 12.8907 8.48698C13.493 8.48698 14.0894 8.6057 14.6458 8.83635C15.2023 9.06701 15.7077 9.40507 16.1334 9.83121L16.2709 9.96871C16.811 10.497 17.497 10.8514 18.2404 10.9862C18.9838 11.121 19.7505 11.03 20.4417 10.725H20.6251C21.3029 10.4345 21.881 9.95211 22.2881 9.33728C22.6953 8.72244 22.9138 8.00197 22.9167 7.26454V6.87496C22.9167 5.65938 23.3996 4.4936 24.2592 3.63405C25.1187 2.77451 26.2845 2.29163 27.5001 2.29163C28.7157 2.29163 29.8814 2.77451 30.741 3.63405C31.6005 4.4936 32.0834 5.65938 32.0834 6.87496V7.08121C32.0864 7.81864 32.3049 8.53911 32.712 9.15394C33.1192 9.76877 33.6973 10.2511 34.3751 10.5416C35.0663 10.8467 35.833 10.9377 36.5764 10.8029C37.3198 10.6681 38.0058 10.3137 38.5459 9.78538L38.6834 9.64788C39.1091 9.22173 39.6146 8.88367 40.171 8.65302C40.7274 8.42237 41.3238 8.30365 41.9261 8.30365C42.5284 8.30365 43.1249 8.42237 43.6813 8.65302C44.2377 8.88367 44.7432 9.22173 45.1688 9.64788C45.595 10.0735 45.933 10.579 46.1637 11.1354C46.3943 11.6918 46.5131 12.2883 46.5131 12.8906C46.5131 13.4929 46.3943 14.0893 46.1637 14.6457C45.933 15.2021 45.595 15.7076 45.1688 16.1333L45.0313 16.2708C44.503 16.8109 44.1486 17.4969 44.0138 18.2403C43.879 18.9837 43.97 19.7504 44.2751 20.4416V20.625C44.5656 21.3028 45.0479 21.8808 45.6628 22.288C46.2776 22.6952 46.9981 22.9137 47.7355 22.9166H48.1251C49.3407 22.9166 50.5064 23.3995 51.366 24.2591C52.2255 25.1186 52.7084 26.2844 52.7084 27.5C52.7084 28.7155 52.2255 29.8813 51.366 30.7409C50.5064 31.6004 49.3407 32.0833 48.1251 32.0833H47.9188C47.1814 32.0862 46.4609 32.3047 45.8461 32.7119C45.2313 33.1191 44.7489 33.6972 44.4584 34.375Z" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" stroke="#1E1E1E"/>
+                </g>
+                <defs>
+                  <clipPath id="clip0_87_15">
+                    <rect width="55" height="55" fill="white"/>
+                  </clipPath>
+                </defs>
+              </svg>
+            </button>
           </div>
-
-          <button id="calToggleDone" type="button" aria-label="Mostrar/ocultar tarefas concluídas" class="absolute right-9 sm:right-11 top-1/2 -translate-y-1/2 flex items-center justify-center">
-            <svg id="eyeOpen" width="28" height="28" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M1.66675 20C1.66675 20 8.33342 6.66666 20.0001 6.66666C31.6667 6.66666 38.3334 20 38.3334 20C38.3334 20 31.6667 33.3333 20.0001 33.3333C8.33342 33.3333 1.66675 20 1.66675 20Z" stroke="#1E1E1E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M20.0001 25C22.7615 25 25.0001 22.7614 25.0001 20C25.0001 17.2386 22.7615 15 20.0001 15C17.2387 15 15.0001 17.2386 15.0001 20C15.0001 22.7614 17.2387 25 20.0001 25Z" stroke="#1E1E1E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <svg id="eyeClosed" class="hidden" width="28" height="28" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M35.88 35.88C32.4612 38.486 28.2982 39.9297 24 40C10 40 2 24 2 24C4.48778 19.3638 7.93827 15.3132 12.12 12.12M19.8 8.48C21.1767 8.15776 22.5861 7.99668 24 8C38 8 46 24 46 24C44.786 26.2712 43.3381 28.4095 41.68 30.38M28.24 28.24C27.6907 28.8295 27.0283 29.3023 26.2923 29.6302C25.5563 29.9582 24.7618 30.1345 23.9562 30.1487C23.1506 30.1629 22.3503 30.0148 21.6032 29.713C20.8561 29.4112 20.1774 28.9621 19.6077 28.3923C19.0379 27.8226 18.5888 27.1439 18.287 26.3968C17.9852 25.6497 17.8371 24.8494 17.8513 24.0438C17.8655 23.2382 18.0418 22.4437 18.3698 21.7077C18.6977 20.9717 19.1705 20.3093 19.76 19.76M2 2L46 46" stroke="#1E1E1E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <span id="eyeTooltip" class="pointer-events-none absolute right-0 top-full mt-2 whitespace-nowrap bg-[#1E1E1E] text-white text-[11px] sm:text-xs px-2.5 py-1.5 rounded-md opacity-0 transition-opacity duration-150"></span>
-          </button>
-
-          <button id="calPrint" type="button" aria-label="Imprimir calendário" class="absolute right-0 top-1/2 -translate-y-1/2 flex items-center justify-center">
-            <svg width="24" height="24" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M9.99992 15V3.33331H29.9999V15M9.99992 30H6.66659C5.78253 30 4.93468 29.6488 4.30956 29.0237C3.68444 28.3985 3.33325 27.5507 3.33325 26.6666V18.3333C3.33325 17.4493 3.68444 16.6014 4.30956 15.9763C4.93468 15.3512 5.78253 15 6.66659 15H33.3333C34.2173 15 35.0652 15.3512 35.6903 15.9763C36.3154 16.6014 36.6666 17.4493 36.6666 18.3333V26.6666C36.6666 27.5507 36.3154 28.3985 35.6903 29.0237C35.0652 29.6488 34.2173 30 33.3333 30H29.9999M9.99992 23.3333H29.9999V36.6666H9.99992V23.3333Z" stroke="#1E1E1E" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <span id="printTooltip" class="pointer-events-none absolute right-0 top-full mt-2 whitespace-nowrap bg-[#1E1E1E] text-white text-[11px] sm:text-xs px-2.5 py-1.5 rounded-md opacity-0 transition-opacity duration-150">Imprimir calendário</span>
-          </button>
         </div>
 
+        <!-- Popup para digitar mês/ano -->
+        <div id="calGotoPopup" class="hidden absolute left-0 top-full mt-2 z-30 bg-white border border-[#E3EAE8] rounded-xl shadow-lg p-3 w-56">
+          <label class="block text-[11px] uppercase tracking-wide text-[#6B6B6B] mb-1">Mês</label>
+          <select id="calGotoMes" class="w-full mb-2 px-2 py-1.5 text-sm rounded-lg border border-[#E3EAE8] bg-white outline-none">
+            <!-- preenchido via JS -->
+          </select>
+          <label class="block text-[11px] uppercase tracking-wide text-[#6B6B6B] mb-1">Ano</label>
+          <input id="calGotoAno" type="number" inputmode="numeric" class="w-full mb-3 px-2 py-1.5 text-sm rounded-lg border border-[#E3EAE8] bg-white outline-none" />
+          <div class="flex items-center justify-end gap-2">
+            <button id="calGotoCancelar" type="button" class="text-xs px-3 py-1.5 rounded-lg text-[#6B6B6B] hover:bg-[#F4F7F6]">Cancelar</button>
+            <button id="calGotoIr" type="button" class="text-xs px-3 py-1.5 rounded-lg bg-teal text-white hover:brightness-95">Ir</button>
+          </div>
+        </div>
+
+        <!-- Tabela do Calendário -->
         <div class="rounded-2xl shadow-md bg-white border border-[#E3EAE8]">
           <table class="w-full border-collapse table-fixed">
             <thead>
@@ -118,6 +133,45 @@
         </div>
       </div>
     </main>
+
+    <!-- Modal de Configurações de Automação -->
+    <div id="modalConfig" class="hidden fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/40 backdrop-blur-sm">
+      <div class="w-full max-w-lg bg-white rounded-2xl shadow-lg border border-[#E3EAE8] p-6 sm:p-7">
+        <div class="flex items-center justify-between mb-5">
+          <h2 class="text-lg sm:text-xl text-ink">Automações do Calendário</h2>
+          <button type="button" id="btnFecharConfig" class="text-[#6B7B78] hover:text-ink transition-colors">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M6 6L18 18M6 18L18 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+
+        <!-- Formulário para adicionar -->
+        <div class="bg-[#F9FBFA] border border-[#E3EAE8] rounded-xl p-4 mb-4">
+          <label class="block text-sm mb-1">Nome da Tarefa</label>
+          <input type="text" id="cfgNome" placeholder="Ex: Faturar CASEMBRAPA, Pagar Impostos..." class="w-full rounded-lg border border-[#CBD5D1] px-3 py-2 text-sm mb-3 uppercase">
+
+          <div class="grid grid-cols-2 gap-3 mb-3">
+            <div>
+              <label class="block text-sm mb-1">Quando?</label>
+              <select id="cfgQuando" class="w-full rounded-lg border border-[#CBD5D1] px-3 py-2 text-sm">
+                <option value="primeiros_dias_uteis">Nos primeiros dias úteis</option>
+                <option value="ate_dia">Até o dia (Fixo)</option>
+              </select>
+            </div>
+            <div id="cfgDiaWrap" class="hidden">
+              <label class="block text-sm mb-1">Dia limite</label>
+              <input type="number" id="cfgDia" placeholder="10" class="w-full rounded-lg border border-[#CBD5D1] px-3 py-2 text-sm">
+            </div>
+          </div>
+          
+          <button type="button" id="btnAdicionarAutomacao" class="w-full bg-teal text-white rounded-xl py-2.5 text-sm hover:brightness-95 transition-all">Adicionar Automação</button>
+        </div>
+
+        <!-- Lista de automações -->
+        <ul id="listaAutomacoes" class="max-h-60 overflow-y-auto space-y-2">
+          <!-- Preenchido via JS -->
+        </ul>
+      </div>
+    </div>
   </div>
 {% endblock %}
 
@@ -129,47 +183,83 @@
   let calYear = today.getFullYear();
   let calMonth = today.getMonth(); // 0-11
 
-    // --- Feriados ---
-  // Fixos: chave "mes-dia" (mês 1-12, sem zero à esquerda)
-  const FERIADOS_FIXOS = {
-    '1-1':   'Confraternização Universal',
-    '4-21':  'Tiradentes',
-    '5-1':   'Dia do Trabalhador',
-    '9-7':   'Independência do Brasil',
-    '9-20':  'Revolução Farroupilha',
-    '10-12': 'Nossa Senhora Aparecida',
-    '11-2':  'Finados',
-    '11-15': 'Proclamação da República',
-    '11-20': 'Dia Nacional de Zumbi e da Consciência Negra',
-    '12-25': 'Natal',
-  };
+  // --- URLs do Backend ---
+  const URL_API_TAREFAS = "{% url 'core:api_tarefas_calendario' %}";
+  const URL_SALVAR_TAREFA = "{% url 'core:salvar_tarefa_calendario' %}";
+  const CSRF_TOKEN = "{{ csrf_token }}";
 
-  // Móveis: por ano (precisam ser cadastrados/calculados a cada ano)
-  const FERIADOS_MOVEIS = {
-    2026: {
-      '2-17': 'Carnaval',
-      '4-3':  'Paixão de Cristo',
-      '6-4':  'Corpus Christi',
-    },
-    // 2027: { ... },
-    // 2028: { ... },
+  let tasksStore = {};
+  function dateKey(y, m, d) { return y + '-' + m + '-' + d; }
+
+  async function carregarTarefasDoBanco() {
+    try {
+      const response = await fetch(URL_API_TAREFAS);
+      const tarefas = await response.json();
+      
+      tasksStore = {}; 
+      tarefas.forEach(t => {
+        const [ano, mes, dia] = t.start.split('-');
+        const key = dateKey(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
+        if (!tasksStore[key]) tasksStore[key] = [];
+        tasksStore[key].push({ id: t.id, text: t.title, done: t.done });
+      });
+      renderCalendar(calYear, calMonth);
+    } catch (error) {
+      console.error("Erro ao carregar tarefas:", error);
+    }
+  }
+
+  async function salvarTarefaAPI(key, texto) {
+    const [ano, mes, dia] = key.split('-');
+    const dataFormatada = `${ano}-${String(parseInt(mes) + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+    try {
+      await fetch(URL_SALVAR_TAREFA, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+        body: JSON.stringify({ titulo: texto, data: dataFormatada })
+      });
+      carregarTarefasDoBanco();
+    } catch (error) { console.error(error); }
+  }
+
+  async function editarTarefaAPI(id, texto, done) {
+    try {
+      await fetch(`/core/calendario/editar/${id}/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+        body: JSON.stringify({ titulo: texto, done: done })
+      });
+      // NÃO chama carregarTarefasDoBanco() aqui! A tela já foi atualizada.
+    } catch (error) { console.error(error); }
+  }
+
+  async function excluirTarefaAPI(id) {
+    try {
+      await fetch(`/core/calendario/excluir/${id}/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': CSRF_TOKEN }
+      });
+      // NÃO chama carregarTarefasDoBanco() aqui! A tela já foi atualizada.
+    } catch (error) { console.error(error); }
+  }
+
+  // --- Feriados ---
+  const FERIADOS_FIXOS = {
+    '1-1':   'Confraternização Universal', '4-21':  'Tiradentes',
+    '5-1':   'Dia do Trabalhador', '9-7':   'Independência do Brasil',
+    '9-20':  'Revolução Farroupilha', '10-12': 'Nossa Senhora Aparecida',
+    '11-2':  'Finados', '11-15': 'Proclamação da República',
+    '11-20': 'Dia Nacional de Zumbi e da Consciência Negra', '12-25': 'Natal',
   };
+  const FERIADOS_MOVEIS = { 2026: { '2-17': 'Carnaval', '4-3': 'Paixão de Cristo', '6-4': 'Corpus Christi' } };
 
   function getFeriado(year, month, day) {
     const key = `${month + 1}-${day}`;
-    const fixo = FERIADOS_FIXOS[key];
-    if (fixo) return fixo;
-    const moveisDoAno = FERIADOS_MOVEIS[year] || {};
-    return moveisDoAno[key] || null;
+    return FERIADOS_FIXOS[key] || (FERIADOS_MOVEIS[year] || {})[key] || null;
   }
 
   const calLabel = document.getElementById('calLabel');
   const calBody = document.getElementById('calBody');
-
-  // tarefas em memória por enquanto: { "ano-mes-dia": [{text, done}, ...] }
-  const tasksStore = {};
-  function dateKey(y, m, d) { return y + '-' + m + '-' + d; }
-
   let showCompleted = true;
   const eyeOpen = document.getElementById('eyeOpen');
   const eyeClosed = document.getElementById('eyeClosed');
@@ -177,114 +267,95 @@
   const eyeTooltip = document.getElementById('eyeTooltip');
   let eyeHoverTimer = null;
 
-  calToggleDoneBtn.addEventListener('mouseenter', () => {
-    eyeHoverTimer = setTimeout(() => {
-      eyeTooltip.textContent = showCompleted ? 'Ocultar tarefas concluídas' : 'Mostrar tarefas concluídas';
-      eyeTooltip.classList.remove('opacity-0');
-      eyeTooltip.classList.add('opacity-100');
-    }, 200);
-  });
-  calToggleDoneBtn.addEventListener('mouseleave', () => {
-    clearTimeout(eyeHoverTimer);
-    eyeTooltip.classList.remove('opacity-100');
-    eyeTooltip.classList.add('opacity-0');
-  });
+  // Toggle Concluídas
+  calToggleDoneBtn.addEventListener('mouseenter', () => { eyeHoverTimer = setTimeout(() => { eyeTooltip.textContent = showCompleted ? 'Ocultar concluídas' : 'Mostrar concluídas'; eyeTooltip.classList.remove('opacity-0'); eyeTooltip.classList.add('opacity-100'); }, 200); });
+  calToggleDoneBtn.addEventListener('mouseleave', () => { clearTimeout(eyeHoverTimer); eyeTooltip.classList.remove('opacity-100'); eyeTooltip.classList.add('opacity-0'); });
+  calToggleDoneBtn.addEventListener('click', () => { showCompleted = !showCompleted; eyeOpen.classList.toggle('hidden', !showCompleted); eyeClosed.classList.toggle('hidden', showCompleted); renderCalendar(calYear, calMonth); });
 
-  calToggleDoneBtn.addEventListener('click', () => {
-    clearTimeout(eyeHoverTimer);
-    eyeTooltip.classList.remove('opacity-100');
-    eyeTooltip.classList.add('opacity-0');
-    showCompleted = !showCompleted;
-    eyeOpen.classList.toggle('hidden', !showCompleted);
-    eyeClosed.classList.toggle('hidden', showCompleted);
-    renderCalendar(calYear, calMonth);
-  });
-
+  // Imprimir
   const calPrintBtn = document.getElementById('calPrint');
   const printTooltip = document.getElementById('printTooltip');
   let printHoverTimer = null;
-  calPrintBtn.addEventListener('mouseenter', () => {
-    printHoverTimer = setTimeout(() => {
-      printTooltip.classList.remove('opacity-0');
-      printTooltip.classList.add('opacity-100');
-    }, 200);
-  });
-  calPrintBtn.addEventListener('mouseleave', () => {
-    clearTimeout(printHoverTimer);
-    printTooltip.classList.remove('opacity-100');
-    printTooltip.classList.add('opacity-0');
-  });
-  calPrintBtn.addEventListener('click', () => {
-    clearTimeout(printHoverTimer);
-    printTooltip.classList.remove('opacity-100');
-    printTooltip.classList.add('opacity-0');
-    window.print();
-  });
+  calPrintBtn.addEventListener('mouseenter', () => { printHoverTimer = setTimeout(() => { printTooltip.classList.remove('opacity-0'); printTooltip.classList.add('opacity-100'); }, 200); });
+  calPrintBtn.addEventListener('mouseleave', () => { clearTimeout(printHoverTimer); printTooltip.classList.remove('opacity-100'); printTooltip.classList.add('opacity-0'); });
+  calPrintBtn.addEventListener('click', () => window.print());
 
-  // ordem sequencial dos dias do mês atual (só os que têm número), pra o Tab saber qual é "o próximo"
   let dayCellsOrder = [];
 
   function makeTaskLine(inner, key, index) {
     const task = tasksStore[key][index];
     const taskLine = document.createElement('div');
-    taskLine.className = 'text-[10px] sm:text-[11px] leading-snug mt-1 cursor-pointer '
-      + (task.done ? 'text-[#9A9A9A] line-through' : 'text-[#4A4A4A]');
+    taskLine.className = 'text-[10px] sm:text-[11px] leading-snug mt-1 cursor-pointer ' + (task.done ? 'text-[#9A9A9A] line-through' : 'text-[#4A4A4A]');
     taskLine.textContent = '• ' + task.text;
 
+    // Clique simples para riscar (feito de forma otimista na tela)
     taskLine.addEventListener('click', () => {
-      if (taskLine._clickTimer) {
-        clearTimeout(taskLine._clickTimer);
-        taskLine._clickTimer = null;
-        return; // era o primeiro clique de um duplo clique, não conta como clique simples
-      }
+      if (taskLine._clickTimer) { clearTimeout(taskLine._clickTimer); taskLine._clickTimer = null; return; }
       taskLine._clickTimer = setTimeout(() => {
         taskLine._clickTimer = null;
         task.done = !task.done;
+        
+        // Atualiza visualmente na hora
+        taskLine.className = 'text-[10px] sm:text-[11px] leading-snug mt-1 cursor-pointer ' + (task.done ? 'text-[#9A9A9A] line-through' : 'text-[#4A4A4A]');
+        
+        // Se a tarefa foi riscada e a opção for esconder as riscadas
         if (task.done && !showCompleted) {
-          renderCalendar(calYear, calMonth); // some da lista se as concluídas estiverem ocultas
-        } else {
-          taskLine.className = 'text-[10px] sm:text-[11px] leading-snug mt-1 cursor-pointer '
-            + (task.done ? 'text-[#9A9A9A] line-through' : 'text-[#4A4A4A]');
+            taskLine.remove();
         }
+        
+        // Salva no banco em segundo plano
+        editarTarefaAPI(task.id, task.text, task.done);
       }, 220);
     });
 
+    // Duplo clique para editar
     taskLine.addEventListener('dblclick', (e) => {
-      e.stopPropagation(); // não deixa o duplo clique "vazar" pro dia e abrir uma tarefa nova
+      e.stopPropagation();
       if (taskLine._clickTimer) { clearTimeout(taskLine._clickTimer); taskLine._clickTimer = null; }
       startEditingTask(inner, taskLine, key, index);
     });
-
     return taskLine;
   }
 
   function startEditingTask(inner, taskLine, key, index) {
+    const task = tasksStore[key][index];
     const input = document.createElement('input');
     input.type = 'text';
-    input.className = 'cal-task-input w-full text-[10px] sm:text-[11px] bg-transparent outline-none border-b border-[#9E9E9E]';
-    input.value = tasksStore[key][index].text;
+    input.className = 'cal-task-input w-full text-[10px] sm:text-[11px] bg-transparent outline-none border-b border-[#9E9E9E] uppercase';
+    input.value = task.text;
     taskLine.replaceWith(input);
-    input.focus();
-    input.select();
+    input.focus(); input.select();
 
     let finished = false;
     function finishEdit(save) {
-      if (finished) return;
+      if (finished) return; 
       finished = true;
-      if (save) {
-        const text = input.value.trim();
-        if (text) {
-          tasksStore[key][index].text = text;
-        } else {
-          tasksStore[key].splice(index, 1); // apagar deixando vazio
+      
+      const text = input.value.trim();
+      
+      if (save && text) {
+        if (text !== task.text) {
+          task.text = text; // Atualiza memória
+          editarTarefaAPI(task.id, text, task.done); // Salva no banco
         }
+        // Cria a linha visual novamente com o texto novo
+        const newLine = makeTaskLine(inner, key, index);
+        input.replaceWith(newLine);
+      } else if (save && !text) {
+        // Se apagou tudo, remove
+        excluirTarefaAPI(task.id);
+        tasksStore[key].splice(index, 1);
+        input.remove();
+      } else {
+        // Se cancelou (Escape), volta pro texto antigo
+        const newLine = makeTaskLine(inner, key, index);
+        input.replaceWith(newLine);
       }
-      renderCalendar(calYear, calMonth);
     }
 
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') { e.preventDefault(); finishEdit(true); }
-      else if (e.key === 'Escape') { finishEdit(false); }
+    input.addEventListener('keydown', (e) => { 
+      if (e.key === 'Enter') { e.preventDefault(); finishEdit(true); } 
+      else if (e.key === 'Escape') { finishEdit(false); } 
     });
     input.addEventListener('blur', () => finishEdit(true));
   }
@@ -298,7 +369,7 @@
 
     const input = document.createElement('input');
     input.type = 'text';
-    input.className = 'cal-task-input w-full text-xs bg-transparent outline-none border-b border-[#9E9E9E] mt-1';
+    input.className = 'cal-task-input w-full text-xs bg-transparent outline-none border-b border-[#9E9E9E] mt-1 uppercase';
     inner.appendChild(input);
     input.focus();
 
@@ -306,9 +377,22 @@
       const text = input.value.trim();
       if (text) {
         if (!tasksStore[key]) tasksStore[key] = [];
-        tasksStore[key].push({ text, done: false });
-        const taskLine = makeTaskLine(inner, key, tasksStore[key].length - 1);
-        inner.insertBefore(taskLine, input);
+        const tempTask = { id: 'temp_' + Date.now(), text: text.toUpperCase(), done: false };
+        tasksStore[key].push(tempTask);
+        
+        const taskIndex = tasksStore[key].length - 1;
+        const taskLine = makeTaskLine(inner, key, taskIndex);
+        inner.insertBefore(taskLine, input); 
+        
+        const [ano, mes, dia] = key.split('-');
+        const dataFormatada = `${ano}-${String(parseInt(mes) + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+        
+        // Salva no banco em segundo plano e SILENCIOSAMENTE
+        fetch(URL_SALVAR_TAREFA, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+          body: JSON.stringify({ titulo: text, data: dataFormatada })
+        });
       }
       input.value = '';
     }
@@ -317,7 +401,7 @@
       if (e.key === 'Enter') {
         e.preventDefault();
         commitTask();
-        input.focus();
+        input.focus(); 
       } else if (e.key === 'Escape') {
         td.classList.remove('cal-day-focused');
         input.remove();
@@ -326,6 +410,7 @@
         commitTask();
         td.classList.remove('cal-day-focused');
         input.remove();
+        
         const idx = dayCellsOrder.findIndex((d) => d.key === key);
         if (idx !== -1 && idx + 1 < dayCellsOrder.length) {
           const next = dayCellsOrder[idx + 1];
@@ -337,62 +422,52 @@
     input.addEventListener('blur', () => {
       setTimeout(() => {
         if (input.parentNode) {
+          commitTask();
           input.remove();
           td.classList.remove('cal-day-focused');
         }
-      }, 100);
+      }, 150);
     });
   }
 
   function renderCalendar(year, month) {
     calLabel.textContent = MESES[month] + ' ' + year;
-
     const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const firstDow = new Date(year, month, 1).getDay(); // 0=Dom..6=Sáb
-    const firstMonIdx = (firstDow + 6) % 7; // 0=Seg..6=Dom
-
+    const firstDow = new Date(year, month, 1).getDay();
+    const firstMonIdx = (firstDow + 6) % 7;
     const cells = [];
     for (let i = 0; i < firstMonIdx; i++) cells.push(null);
     for (let d = 1; d <= daysInMonth; d++) cells.push(d);
     while (cells.length % 7 !== 0) cells.push(null);
 
-    dayCellsOrder = [];
-    calBody.innerHTML = '';
+    dayCellsOrder = []; calBody.innerHTML = '';
     for (let w = 0; w < cells.length / 7; w++) {
       const tr = document.createElement('tr');
-      for (let c = 0; c < 5; c++) { // só Segunda a Sexta
+      for (let c = 0; c < 5; c++) {
         const val = cells[w * 7 + c];
         const isToday = val && year === today.getFullYear() && month === today.getMonth() && val === today.getDate();
         const td = document.createElement('td');
-        td.className = 'align-top border-b border-r border-[#E3EAE8] last:border-r-0'
-          + (isToday ? ' cal-today' : '')
-          + (val ? ' cal-day' : '');
-
+        td.className = 'align-top border-b border-r border-[#E3EAE8] last:border-r-0' + (isToday ? ' cal-today' : '') + (val ? ' cal-day' : '');
         if (val) {
           const key = dateKey(year, month, val);
           const inner = document.createElement('div');
           inner.className = 'cal-day-inner px-2.5 sm:px-3 pt-2 pb-2 min-h-16 sm:min-h-20 text-sm sm:text-base text-[#333]';
-
           const numberSpan = document.createElement('div');
-          numberSpan.textContent = val;
-          inner.appendChild(numberSpan);
+          numberSpan.textContent = val; inner.appendChild(numberSpan);
 
           const feriado = getFeriado(year, month, val);
           if (feriado) {
             const feriadoEl = document.createElement('div');
             feriadoEl.className = 'text-[10px] sm:text-[11px] font-bold uppercase tracking-wide text-[#B91C1C] mt-1 leading-snug';
-            feriadoEl.textContent = `FERIADO - ${feriado}`;
-            inner.appendChild(feriadoEl);
+            feriadoEl.textContent = `FERIADO - ${feriado}`; inner.appendChild(feriadoEl);
           }
 
           (tasksStore[key] || []).forEach((task, taskIndex) => {
             if (task.done && !showCompleted) return;
             inner.appendChild(makeTaskLine(inner, key, taskIndex));
           });
-
           inner.addEventListener('dblclick', () => startAddingTask(inner, key));
-          td.appendChild(inner);
-          dayCellsOrder.push({ key, inner });
+          td.appendChild(inner); dayCellsOrder.push({ key, inner });
         }
         tr.appendChild(td);
       }
@@ -400,124 +475,153 @@
     }
   }
 
-  // Preenche o select de meses uma única vez
-  const calGotoMes = document.getElementById('calGotoMes');
-  MESES.forEach((nome, idx) => {
-    const opt = document.createElement('option');
-    opt.value = idx;      // 0-11
-    opt.textContent = nome;
-    calGotoMes.appendChild(opt);
-  });
-
-  document.getElementById('calPrev').addEventListener('click', () => {
-    calMonth--;
-    if (calMonth < 0) { calMonth = 11; calYear--; }
-    renderCalendar(calYear, calMonth);
-  });
-  document.getElementById('calNext').addEventListener('click', () => {
-    calMonth++;
-    if (calMonth > 11) { calMonth = 0; calYear++; }
-    renderCalendar(calYear, calMonth);
-  });
+  // Navegação
+  document.getElementById('calPrev').addEventListener('click', () => { calMonth--; if (calMonth < 0) { calMonth = 11; calYear--; } renderCalendar(calYear, calMonth); });
+  document.getElementById('calNext').addEventListener('click', () => { calMonth++; if (calMonth > 11) { calMonth = 0; calYear++; } renderCalendar(calYear, calMonth); });
 
   const calTodayBtn  = document.getElementById('calToday');
   const calGotoPopup = document.getElementById('calGotoPopup');
   const calGotoAno   = document.getElementById('calGotoAno');
-
-  // --- Clique simples x duplo clique no botão de calendário ---
   let calTodayClickTimer = null;
 
   calTodayBtn.addEventListener('click', () => {
-    // Esconde o tooltip imediatamente ao clicar
-    clearTimeout(calTodayTooltipTimer);
-    calTodayTooltip.classList.remove('opacity-100');
-    calTodayTooltip.classList.add('opacity-0');
-
-    // Se já houver um timer pendente, é porque veio o segundo clique -> é duplo.
-    // Nesse caso não faz nada aqui; o dblclick cuida.
+    clearTimeout(calTodayTooltipTimer); calTodayTooltip.classList.remove('opacity-100'); calTodayTooltip.classList.add('opacity-0');
     if (calTodayClickTimer) return;
-
     calTodayClickTimer = setTimeout(() => {
       calTodayClickTimer = null;
-      // Ação do clique simples: abrir o popup de mês/ano
       const jaAberto = !calGotoPopup.classList.contains('hidden');
-      if (jaAberto) {
-        fecharGotoPopup();
-      } else {
-        abrirGotoPopup();
-      }
-    }, 220); // 220ms: abaixo disso o navegador ainda considera clique simples
+      jaAberto ? fecharGotoPopup() : abrirGotoPopup();
+    }, 220);
   });
 
   calTodayBtn.addEventListener('dblclick', () => {
-    // Cancela o clique simples pendente
-    if (calTodayClickTimer) {
-      clearTimeout(calTodayClickTimer);
-      calTodayClickTimer = null;
-    }
-    // Ação do duplo clique: voltar para o mês atual
-    fecharGotoPopup();
-    calYear = today.getFullYear();
-    calMonth = today.getMonth();
-    renderCalendar(calYear, calMonth);
+    if (calTodayClickTimer) { clearTimeout(calTodayClickTimer); calTodayClickTimer = null; }
+    fecharGotoPopup(); calYear = today.getFullYear(); calMonth = today.getMonth(); renderCalendar(calYear, calMonth);
   });
 
-  // --- Abrir / fechar o popup ---
-  function abrirGotoPopup() {
-    // Pré-preenche com o mês/ano atualmente exibidos
-    calGotoMes.value = String(calMonth);
-    calGotoAno.value = calYear;
-
-    calGotoPopup.classList.remove('hidden');
-    // Foco no select depois do paint, pra não roubar o foco durante o clique
-    setTimeout(() => calGotoMes.focus(), 0);
-  }
-
-  function fecharGotoPopup() {
-    calGotoPopup.classList.add('hidden');
-  }
-
-  // --- Botões do popup ---
-  document.getElementById('calGotoCancelar').addEventListener('click', () => {
-    fecharGotoPopup();
-  });
-
+  function abrirGotoPopup() { calGotoMes.value = String(calMonth); calGotoAno.value = calYear; calGotoPopup.classList.remove('hidden'); setTimeout(() => calGotoMes.focus(), 0); }
+  function fecharGotoPopup() { calGotoPopup.classList.add('hidden'); }
+  document.getElementById('calGotoCancelar').addEventListener('click', fecharGotoPopup);
   document.getElementById('calGotoIr').addEventListener('click', () => {
-    const novoMes = parseInt(calGotoMes.value, 10);
-    const novoAno = parseInt(calGotoAno.value, 10);
+    const novoMes = parseInt(calGotoMes.value, 10); const novoAno = parseInt(calGotoAno.value, 10);
     if (Number.isNaN(novoMes) || Number.isNaN(novoAno)) return;
-
-    calYear = novoAno;
-    calMonth = novoMes;
-    renderCalendar(calYear, calMonth);
-    fecharGotoPopup();
+    calYear = novoAno; calMonth = novoMes; renderCalendar(calYear, calMonth); fecharGotoPopup();
   });
-
-  // --- Fechar popup ao clicar fora ---
   document.addEventListener('click', (e) => {
     if (calGotoPopup.classList.contains('hidden')) return;
-    if (calGotoPopup.contains(e.target)) return;
-    if (calTodayBtn.contains(e.target)) return;
+    if (calGotoPopup.contains(e.target) || calTodayBtn.contains(e.target)) return;
     fecharGotoPopup();
   });
 
-  // --- Tooltip do botão de calendário (delay 200ms) ---
   const calTodayTooltip = document.getElementById('calTodayTooltip');
   let calTodayTooltipTimer = null;
+  calTodayBtn.addEventListener('mouseenter', () => { calTodayTooltipTimer = setTimeout(() => { calTodayTooltip.classList.remove('opacity-0'); calTodayTooltip.classList.add('opacity-100'); }, 200); });
+  calTodayBtn.addEventListener('mouseleave', () => { clearTimeout(calTodayTooltipTimer); calTodayTooltip.classList.remove('opacity-100'); calTodayTooltip.classList.add('opacity-0'); });
 
-  calTodayBtn.addEventListener('mouseenter', () => {
-    calTodayTooltipTimer = setTimeout(() => {
-      calTodayTooltip.classList.remove('opacity-0');
-      calTodayTooltip.classList.add('opacity-100');
-    }, 200); // 0.2 segundo
+  // Inicialização
+  const calGotoMes = document.getElementById('calGotoMes');
+  MESES.forEach((nome, idx) => { const opt = document.createElement('option'); opt.value = idx; opt.textContent = nome; calGotoMes.appendChild(opt); });
+
+  document.addEventListener('DOMContentLoaded', () => {
+    carregarTarefasDoBanco();
   });
-
-  calTodayBtn.addEventListener('mouseleave', () => {
-    clearTimeout(calTodayTooltipTimer);
-    calTodayTooltip.classList.remove('opacity-100');
-    calTodayTooltip.classList.add('opacity-0');
-  });
-
   renderCalendar(calYear, calMonth);
+
+  // --- Modal de Configurações ---
+  const modalConfig = document.getElementById('modalConfig');
+  const btnFecharConfig = document.getElementById('btnFecharConfig');
+  
+  const cfgQuando = document.getElementById('cfgQuando');
+  const cfgDiaWrap = document.getElementById('cfgDiaWrap');
+  const listaAutomacoes = document.getElementById('listaAutomacoes');
+
+  // URLs do Backend
+  const URL_API_REGRAS = "{% url 'core:api_regras_calendario' %}";
+  const URL_SALVAR_REGRA = "{% url 'core:salvar_regra_calendario' %}";
+
+  document.getElementById('calSettings').addEventListener('click', () => {
+    modalConfig.classList.remove('hidden');
+    carregarRegras(); // Carrega a lista do banco ao abrir
+  });
+  
+  btnFecharConfig.addEventListener('click', () => {
+    modalConfig.classList.add('hidden');
+  });
+
+  cfgQuando.addEventListener('change', () => {
+    cfgDiaWrap.classList.toggle('hidden', cfgQuando.value !== 'ate_dia');
+  });
+
+  // --- Funções do Banco de Dados ---
+  async function carregarRegras() {
+    try {
+      const resp = await fetch(URL_API_REGRAS);
+      const regras = await resp.json();
+      
+      listaAutomacoes.innerHTML = '';
+      if (regras.length === 0) {
+        listaAutomacoes.innerHTML = '<li class="text-sm text-[#6B7B78] text-center py-4">Nenhuma automação cadastrada.</li>';
+        return;
+      }
+
+      regras.forEach(r => {
+        const li = document.createElement('li');
+        li.className = 'flex justify-between items-center bg-white border border-[#E3EAE8] p-3 rounded-lg text-sm';
+        
+        const texto = r.tipo === 'ate_dia' 
+          ? `Todo dia ${r.dias}` 
+          : `${r.dias}º dia(s) útil(eis)`;
+
+        li.innerHTML = `
+          <div>
+            <strong class="block text-ink">${r.titulo}</strong>
+            <span class="text-xs text-[#6B7B78]">${texto}</span>
+          </div>
+          <button type="button" class="text-[#B91C1C] hover:opacity-70" onclick="excluirRegra(${r.id})">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 6L18 18M6 18L18 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </button>
+        `;
+        listaAutomacoes.appendChild(li);
+      });
+    } catch (error) {
+      console.error("Erro ao carregar regras:", error);
+    }
+  }
+
+  document.getElementById('btnAdicionarAutomacao').addEventListener('click', async () => {
+    const titulo = document.getElementById('cfgNome').value.trim();
+    const tipo = cfgQuando.value;
+    const dias = tipo === 'ate_dia' ? parseInt(document.getElementById('cfgDia').value) : 2; 
+    
+    if (!titulo) return alert("Digite o nome da tarefa.");
+    if (tipo === 'ate_dia' && (!dias || dias < 1 || dias > 31)) return alert("Digite um dia válido (1 a 31).");
+
+    try {
+      await fetch(URL_SALVAR_REGRA, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+        body: JSON.stringify({ titulo, tipo, dias })
+      });
+      
+      document.getElementById('cfgNome').value = '';
+      document.getElementById('cfgDia').value = '';
+      carregarRegras(); // Recarrega a lista
+    } catch (error) {
+      console.error("Erro ao salvar regra:", error);
+    }
+  });
+
+  window.excluirRegra = async function(id) {
+    if (!confirm("Excluir esta automação?")) return;
+    try {
+      await fetch(`/core/regras/excluir/${id}/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': CSRF_TOKEN }
+      });
+      carregarRegras();
+    } catch (error) {
+      console.error("Erro ao excluir regra:", error);
+    }
+  };
 </script>
 {% endblock %}

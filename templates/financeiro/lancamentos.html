@@ -1257,21 +1257,18 @@
     btnLimparFiltros.addEventListener('click', (e) => {
       e.preventDefault(); 
       
-      // 1. Limpa os campos visuais (selects, checkboxes)
+      // 1. Limpa os campos visuais
       formFiltros.reset();
       
-      // 2. Limpa os campos de texto (descrição, observação, nota, etc)
       document.querySelectorAll('#filtrosForm input[type="text"]').forEach(input => {
         input.value = '';
       });
 
-      // 3. Reseta o select de subcentro para a opção padrão (já que ele é dependente do centro)
       const subcentroSelect = document.getElementById('filtroSubcentro');
       if (subcentroSelect) {
         subcentroSelect.innerHTML = '<option value="">Qualquer Sub-Centro...</option>';
       }
 
-      // 4. Limpa as máscaras de data e valor (se o flatpickr estiver em uso)
       ['dataInicial', 'dataFinal'].forEach(id => {
         const el = document.getElementById(id);
         if (el && el._flatpickr) el._flatpickr.clear();
@@ -1283,12 +1280,12 @@
         if (el) el.value = '';
       });
 
-      // 5. Foca no campo de descrição para o usuário começar a digitar
+      // 2. Limpa a URL no navegador para não ficar com ?centro=... etc
+      window.history.pushState({}, '', '{% url "financeiro:lancamentos" %}');
+
+      // 3. Foca no campo de descrição
       const campoDescricao = document.querySelector('input[name="descricao"]');
       if (campoDescricao) campoDescricao.focus();
-
-      // NOTA: Nenhuma chamada htmx.ajax() é feita aqui. 
-      // A tabela continuará mostrando o que estava mostrando.
     });
   }
 </script>

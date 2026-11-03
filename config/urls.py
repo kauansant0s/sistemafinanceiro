@@ -5,8 +5,14 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    
+    # Rotas de Autenticação (Login/Logout)
     path("", include("apps.accounts.urls")),
+    
+    # Rotas da Página Inicial e Calendário (Core)
     path("", include("apps.core.urls")),
+    
+    # Rotas do Financeiro (Lançamentos, Anexos, etc)
     path("", include("apps.financeiro.urls")),
 ]
 

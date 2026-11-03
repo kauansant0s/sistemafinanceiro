@@ -67,7 +67,7 @@
     <img id="headerLogo" class="h-9 sm:h-[46px] w-auto shrink-0" src="{% static 'img/logo.png' %}" alt="Grupo CT Sul — Diagnóstico por Imagem">
 
     <nav class="flex items-center gap-4 sm:gap-9 ml-auto mr-1 sm:mr-2">
-      <a href="{% url 'home' %}" class="text-ink no-underline text-xs sm:text-[15px] tracking-wide whitespace-nowrap">Página inicial</a>
+      <a href="{% url 'core:home' %}" class="text-ink no-underline text-xs sm:text-[15px] tracking-wide whitespace-nowrap">Página inicial</a>
       <a href="{% url 'financeiro:lancamentos' %}" class="text-ink no-underline text-xs sm:text-[15px] tracking-wide whitespace-nowrap">Lançamentos</a>
       <a href="{% url 'financeiro:novo_lancamento' %}" class="hidden sm:inline text-ink no-underline text-[15px] tracking-wide whitespace-nowrap">Novo lançamento</a>
     </nav>
@@ -88,7 +88,7 @@
 <div id="sidebar" data-open="false" class="fixed z-10 left-0 top-[64px] sm:top-[82px] w-64 sm:w-72 px-3 sm:px-4">
   <div class="flex flex-col gap-2.5 py-1">
 
-    <a href="{% url 'home' %}" class="bg-pill rounded-2xl px-5 py-3.5 text-[15px] sm:text-base text-ink no-underline">Página inicial</a>
+    <a href="{% url 'core:home' %}" class="bg-pill rounded-2xl px-5 py-3.5 text-[15px] sm:text-base text-ink no-underline">Página inicial</a>
 
     <button type="button" id="lancamentosItem" class="bg-pill rounded-2xl px-5 py-3.5 text-[15px] sm:text-base text-ink flex items-center justify-between w-full text-left">
       <span>Lançamentos</span>
