@@ -47,7 +47,7 @@ class LancamentoForm(forms.ModelForm):
         return dados
 
 class NovoLancamentoForm(LancamentoForm):
-    """Tela de novo lançamento: acrescenta o parcelamento / recorrência."""
+    """Tela de novo lançamento: acrescenta o parcelamento / recorrência e baixa automática."""
 
     FREQUENCIAS = [
         ("semanal", "Semanal"), ("quinzenal", "Quinzenal"), ("mensal", "Mensal"),
@@ -60,13 +60,37 @@ class NovoLancamentoForm(LancamentoForm):
     qtd_parcelas = forms.IntegerField(required=False, min_value=2, max_value=60)
     recorrente = forms.BooleanField(required=False)
 
+    # --- NOVOS CAMPOS ---
+    baixar_automaticamente = forms.BooleanField(required=False)
+    caixa = forms.ModelChoiceField(queryset=Caixa.objects.filter(ativo=True), required=False)
+    forma_baixa = forms.ModelChoiceField(queryset=FormaBaixa.objects.filter(ativo=True), required=False)
+    data_baixa = forms.DateField(input_formats=DATA_BR, required=False)
+    rateio = forms.BooleanField(required=False)
+
     def clean(self):
         dados = super().clean()
+        
+        # Se NÃO for rateio, exige o subcentro lá em cima
+        if not dados.get("rateio"):
+            if not dados.get("subcentro"):
+                self.add_error("subcentro", "Este campo é obrigatório.")
+        
+        # Validação do Parcelamento
         if dados.get("parcelado"):
             if not dados.get("frequencia"):
                 self.add_error("frequencia", "Escolha a frequência.")
             if not dados.get("recorrente") and not dados.get("qtd_parcelas"):
                 self.add_error("qtd_parcelas", "Informe a quantidade de parcelas (de 2 a 60) ou marque recorrente.")
+        
+        # Validação da Baixa Automática
+        if dados.get("baixar_automaticamente"):
+            if not dados.get("caixa"):
+                self.add_error("caixa", "Selecione o caixa para a baixa automática.")
+            if not dados.get("forma_baixa"):
+                self.add_error("forma_baixa", "Selecione a forma de baixa.")
+            if not dados.get("data_baixa"):
+                self.add_error("data_baixa", "Informe a data de baixa.")
+
         return dados
 
 def formatar_brl(valor):
@@ -76,14 +100,29 @@ def formatar_brl(valor):
 
 
 class LancamentoEdicaoForm(LancamentoForm):
-    """Edição direto na linha da lista. Não mexe na nota fiscal."""
+    """Edição direto na linha da lista."""
+    
+    # Adiciona os campos de baixa (não obrigatórios, só se já for baixado)
+    caixa = forms.ModelChoiceField(queryset=Caixa.objects.filter(ativo=True), required=False)
+    forma_baixa = forms.ModelChoiceField(queryset=FormaBaixa.objects.filter(ativo=True), required=False)
 
     class Meta(LancamentoForm.Meta):
         fields = [
             "centro", "subcentro", "conta", "descricao", "observacoes",
             "nota_fiscal_ano", "nota_fiscal_numero",
             "valor", "data_competencia", "data_vencimento",
+            "caixa", "forma_baixa" # <-- ADICIONADO AQUI
         ]
+
+    def clean(self):
+        dados = super().clean()
+        # Se já foi baixado (tem data_baixa), o caixa e forma são obrigatórios
+        if self.instance and self.instance.data_baixa:
+            if not dados.get("caixa"):
+                self.add_error("caixa", "O caixa é obrigatório para lançamentos baixados.")
+            if not dados.get("forma_baixa"):
+                self.add_error("forma_baixa", "A forma de baixa é obrigatória para lançamentos baixados.")
+        return dados
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

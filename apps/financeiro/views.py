@@ -30,8 +30,8 @@ _PASSO_FREQUENCIA = {
 }
 # Recorrente não tem fim: por enquanto gera o equivalente a 12 meses à frente.
 _QTD_RECORRENTE = {
-    "semanal": 52, "quinzenal": 26, "mensal": 12, "bimestral": 6,
-    "trimestral": 4, "semestral": 2, "anual": 2,
+    "semanal": 52, "quinzenal": 26, "mensal": 24, "bimestral": 12,
+    "trimestral": 8, "semestral": 4, "anual": 2,
 }
 
 
@@ -69,21 +69,107 @@ def _gerar_parcelas(base, frequencia, qtd):
 def novo_lancamento(request):
     if request.method == "POST":
         form = NovoLancamentoForm(request.POST)
+        
+        # MUDANÇA AQUI: O formulário vai validar, mas se for rateio, ele não exige subcentro no topo
         if form.is_valid():
-            lancamento = form.save(commit=False)
-            lancamento.criado_por = request.user  # Salva o usuário logado
+            # Pega os dados básicos
+            conta = form.cleaned_data.get("conta")
+            descricao_base = form.cleaned_data.get("descricao")
+            observacoes = form.cleaned_data.get("observacoes")
+            valor_total = form.cleaned_data.get("valor")
+            data_comp = form.cleaned_data.get("data_competencia")
+            data_venc = form.cleaned_data.get("data_vencimento")
+            nota_ano = form.cleaned_data.get("nota_fiscal_ano")
+            nota_num = form.cleaned_data.get("nota_fiscal_numero")
 
-            if form.cleaned_data["parcelado"]:
-                qtd = _gerar_parcelas(
-                    lancamento,
-                    form.cleaned_data["frequencia"],
-                    None if form.cleaned_data["recorrente"] else form.cleaned_data["qtd_parcelas"],
-                )
-                messages.success(request, f"{qtd} lançamentos salvos com sucesso.")
+            # Dados de baixa automática
+            baixar_auto = form.cleaned_data.get("baixar_automaticamente")
+            caixa = form.cleaned_data.get("caixa")
+            forma_baixa = form.cleaned_data.get("forma_baixa")
+            data_baixa = form.cleaned_data.get("data_baixa")
+
+            # --- LÓGICA DE RATEIO ---
+            if form.cleaned_data.get("rateio"):
+                centros = request.POST.getlist("rateio_centro")
+                subcentros = request.POST.getlist("rateio_subcentro")
+                porcentagens = request.POST.getlist("rateio_pct")
+
+                # Filtra apenas as linhas que foram realmente preenchidas
+                linhas_validas = []
+                for i in range(len(subcentros)):
+                    # Verifica se a linha tem subcentro E porcentagem
+                    if i < len(porcentagens) and subcentros[i] and str(porcentagens[i]).strip():
+                        linhas_validas.append({
+                            "subcentro_id": subcentros[i],
+                            "pct": porcentagens[i]
+                        })
+
+                if not linhas_validas:
+                    messages.error(request, "Erro ao processar o rateio: preencha o subcentro e a porcentagem.")
+                    return redirect("financeiro:novo_lancamento")
+
+                try:
+                    with transaction.atomic():
+                        for linha in linhas_validas:
+                            subcentro_obj = SubCentro.objects.get(pk=linha["subcentro_id"])
+                            pct = Decimal(str(linha["pct"]).replace(',', '.')) / Decimal("100")
+                            valor_parte = valor_total * pct
+
+                            lanc_criado = Lancamento.objects.create(
+                                subcentro=subcentro_obj,
+                                conta=conta,
+                                descricao=f"{descricao_base} - Rateio {subcentro_obj.nome}",
+                                observacoes=observacoes,
+                                nota_fiscal_ano=nota_ano,
+                                nota_fiscal_numero=nota_num,
+                                valor=valor_parte,
+                                data_competencia=data_comp,
+                                data_vencimento=data_venc,
+                                criado_por=request.user,
+                                data_baixa=data_baixa if baixar_auto else None,
+                                caixa=caixa if baixar_auto else None,
+                                forma_baixa=forma_baixa if baixar_auto else None,
+                                valor_baixado=valor_parte if baixar_auto else None,
+                                liquido=valor_parte if baixar_auto else None,
+                                baixado_por=request.user if baixar_auto else None,
+                            )
+                            _salvar_anexos_novo_lancamento(request, lanc_criado)
+                    messages.success(request, f"Lançamento rateado em {len(linhas_validas)} partes com sucesso.")
+                    return redirect("financeiro:novo_lancamento")
+                except Exception as e:
+                    messages.error(request, f"Erro interno ao salvar rateio: {str(e)}")
+                    return redirect("financeiro:novo_lancamento")
+
+            # --- LÓGICA NORMAL (SEM RATEIO) ---
             else:
-                lancamento.save()
-                messages.success(request, "Lançamento salvo com sucesso.")
-            return redirect("financeiro:novo_lancamento")
+                lancamento = form.save(commit=False)
+                lancamento.criado_por = request.user
+                
+                if baixar_auto:
+                    lancamento.data_baixa = data_baixa
+                    lancamento.caixa = caixa
+                    lancamento.forma_baixa = forma_baixa
+                    lancamento.valor_baixado = valor_total
+                    lancamento.liquido = valor_total
+                    lancamento.baixado_por = request.user
+
+                if form.cleaned_data["parcelado"]:
+                    qtd = _gerar_parcelas(
+                        lancamento,
+                        form.cleaned_data["frequencia"],
+                        None if form.cleaned_data["recorrente"] else form.cleaned_data["qtd_parcelas"],
+                    )
+                    primeiro_lancamento = Lancamento.objects.filter(criado_por=request.user).latest('id')
+                    _salvar_anexos_novo_lancamento(request, primeiro_lancamento)
+                    
+                    messages.success(request, f"{qtd} lançamentos salvos com sucesso.")
+                else:
+                    lancamento.save()
+                    _salvar_anexos_novo_lancamento(request, lancamento)
+                    messages.success(request, "Lançamento salvo com sucesso.")
+                return redirect("financeiro:novo_lancamento")
+        
+        # Se o form for inválido, cai aqui para recarregar a página com os erros
         centro_id = request.POST.get("centro")
         subcentro_selecionado = request.POST.get("subcentro")
         conta_id = request.POST.get("conta", "")
@@ -102,6 +188,15 @@ def novo_lancamento(request):
         "subcentros": _subcentros_do_centro(centro_id),
         "subcentro_selecionado": subcentro_selecionado,
         "conta_atual": conta_atual,
+        "centro_selecionado": request.POST.get("centro", ""),
+        "conta_descricao": str(conta_atual) if conta_atual else request.POST.get("q", ""),
+        "descricao_valor": request.POST.get("descricao", ""),
+        "observacoes_valor": request.POST.get("observacoes", ""),
+        "valor_valor": request.POST.get("valor", ""),
+        "data_competencia_valor": request.POST.get("data_competencia", ""),
+        "data_vencimento_valor": request.POST.get("data_vencimento", ""),
+        "nota_ano_valor": request.POST.get("nota_fiscal_ano", ""),
+        "nota_numero_valor": request.POST.get("nota_fiscal_numero", ""),
     })
 
 @login_required
@@ -133,7 +228,7 @@ def buscar_contas(request):
 @login_required
 @vary_on_headers("HX-Request")
 def lancamentos(request):
-    buscou = bool(request.GET)  # a lista só aparece depois que o usuário pesquisa
+    buscou = bool(request.GET)  # Volta a verificar se tem parâmetros na URL
     form = FiltroLancamentosForm(request.GET or None)
     qs = Lancamento.objects.select_related("subcentro__centro", "conta").annotate(
         qtd_anexos=Count('anexos')
@@ -149,6 +244,7 @@ def lancamentos(request):
         receitas=Sum("valor", filter=Q(conta__tipo="R")),
         despesas=Sum("valor", filter=Q(conta__tipo="D")),
     )
+    
     # O resumo só faz sentido quando o resultado tem receitas E despesas
     mostrar_resumo = totais["receitas"] is not None and totais["despesas"] is not None
     receitas = totais["receitas"] or Decimal("0")
@@ -175,7 +271,7 @@ def lancamentos(request):
 
     contexto = {
         "form": form,
-        "buscou": buscou,
+        "buscou": buscou, # <-- Agora ele está definido
         "pagina": pagina,
         "querystring": params.urlencode(),
         "receitas": receitas,
@@ -188,7 +284,6 @@ def lancamentos(request):
     }
 
     # Só devolve o pedaço da tabela quando é o HTMX pedindo
-    # (e não quando o navegador restaura o histórico, que precisa da página inteira).
     if request.htmx and not request.htmx.history_restore_request:
         return render(request, "partials/tabela_lancamentos.html", contexto)
 
@@ -207,14 +302,14 @@ def importacoes(request):
 def _lancamento_ou_404(pk):
     return get_object_or_404(Lancamento.objects.select_related("subcentro__centro", "conta"), pk=pk)
 
-
 @login_required
 def lancamento_linha(request, pk):
     """Mostra a linha normal (usado ao cancelar a edição)."""
     if not request.htmx:
         return redirect("financeiro:lancamentos")
-    return render(request, "partials/_lancamento.html", {"l": _lancamento_ou_404(pk), "detalhe_aberto": True})
-
+    # Busca o lançamento já contando os anexos
+    l = Lancamento.objects.annotate(qtd_anexos=Count('anexos')).get(pk=pk)
+    return render(request, "partials/_lancamento.html", {"l": l, "detalhe_aberto": True})
 
 @login_required
 @require_http_methods(["GET", "POST"])
@@ -228,7 +323,8 @@ def lancamento_editar(request, pk):
         form = LancamentoEdicaoForm(request.POST, instance=l)
         if form.is_valid():
             form.save()
-            l = _lancamento_ou_404(pk)
+            # Recarrega o objeto com a contagem de anexos para o clip não ficar preto
+            l = Lancamento.objects.annotate(qtd_anexos=Count('anexos')).get(pk=pk)
             return render(request, "partials/_lancamento.html", {"l": l, "detalhe_aberto": True, "salvo": True})
     else:
         form = LancamentoEdicaoForm(instance=l)
@@ -673,3 +769,12 @@ def carregar_campos_lancamento(request):
         'form': form,
         'tipo_selecionado': tipo
     })
+
+def _salvar_anexos_novo_lancamento(request, lancamento):
+    arquivos = request.FILES.getlist("anexos")
+    for f in arquivos:
+        AnexoLancamento.objects.create(
+            lancamento=lancamento,
+            arquivo=f,
+            criado_por=request.user
+        )

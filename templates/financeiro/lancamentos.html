@@ -179,7 +179,9 @@
         </div>
 
         <button type="submit" class="bg-teal hover:brightness-95 transition-[filter] text-white rounded-xl px-6 py-2.5 text-sm sm:text-base">Buscar</button>
-        <a href="{% url 'financeiro:lancamentos' %}" class="rounded-xl border border-[#CBD5D1] bg-white px-6 py-2.5 text-sm sm:text-base no-underline text-ink hover:bg-[#F4F7F6]">Limpar filtros</a>
+        <button type="reset" id="btnLimparFiltros" class="rounded-xl border border-[#CBD5D1] bg-white px-6 py-2.5 text-sm sm:text-base text-ink hover:bg-[#F4F7F6]">
+          Limpar filtros
+        </button>
 
         <button type="button" id="btnImprimir" aria-label="Imprimir lançamentos" class="ml-auto flex items-center justify-center shrink-0">
           <svg width="24" height="24" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1217,5 +1219,77 @@
     mostrarToast(e.detail.qtd + ' lançamentos atualizados.');
     atualizarTabelaFundo();
   });
+
+  // --- Modal de Anexos ---
+  const modalAnexos = document.getElementById('modalAnexos');
+  const conteudoModalAnexos = document.getElementById('conteudoModalAnexos');
+
+  // Função global para fechar o modal (chamada pelo botão X dentro do partial)
+  window.fecharModalAnexo = function() {
+    modalAnexos.classList.add('hidden');
+  };
+
+  // Fecha o modal ao clicar fora dele
+  if (modalAnexos) {
+    modalAnexos.addEventListener('click', (e) => {
+      if (e.target === modalAnexos) fecharModalAnexo();
+    });
+  }
+
+  // Quando um anexo é adicionado ou excluído, atualiza a tabela de fundo
+  document.body.addEventListener('anexoAtualizado', () => {
+    atualizarTabelaFundo();
+  });
+
+  // Foca no campo de pesquisa por descrição quando a página carrega
+  document.addEventListener('DOMContentLoaded', () => {
+    const campoDescricao = document.querySelector('input[name="descricao"]');
+    if (campoDescricao) {
+      campoDescricao.focus();
+    }
+  });
+
+  // Limpar filtros visuais sem recarregar a tabela
+  const btnLimparFiltros = document.getElementById('btnLimparFiltros');
+  const formFiltros = document.getElementById('filtrosForm');
+
+  if (btnLimparFiltros && formFiltros) {
+    btnLimparFiltros.addEventListener('click', (e) => {
+      e.preventDefault(); 
+      
+      // 1. Limpa os campos visuais (selects, checkboxes)
+      formFiltros.reset();
+      
+      // 2. Limpa os campos de texto (descrição, observação, nota, etc)
+      document.querySelectorAll('#filtrosForm input[type="text"]').forEach(input => {
+        input.value = '';
+      });
+
+      // 3. Reseta o select de subcentro para a opção padrão (já que ele é dependente do centro)
+      const subcentroSelect = document.getElementById('filtroSubcentro');
+      if (subcentroSelect) {
+        subcentroSelect.innerHTML = '<option value="">Qualquer Sub-Centro...</option>';
+      }
+
+      // 4. Limpa as máscaras de data e valor (se o flatpickr estiver em uso)
+      ['dataInicial', 'dataFinal'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el && el._flatpickr) el._flatpickr.clear();
+        if (el) el.value = '';
+      });
+      
+      ['valorMin', 'valorMax'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+
+      // 5. Foca no campo de descrição para o usuário começar a digitar
+      const campoDescricao = document.querySelector('input[name="descricao"]');
+      if (campoDescricao) campoDescricao.focus();
+
+      // NOTA: Nenhuma chamada htmx.ajax() é feita aqui. 
+      // A tabela continuará mostrando o que estava mostrando.
+    });
+  }
 </script>
 {% endblock %}

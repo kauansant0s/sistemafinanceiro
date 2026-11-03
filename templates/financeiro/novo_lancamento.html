@@ -17,24 +17,18 @@
       <div class="bg-teal rounded-t-2xl px-6 sm:px-8 py-4 sm:py-5">
         <h2 class="text-white text-lg sm:text-xl tracking-wide">Novo Lançamento</h2>
       </div>
-      <form method="post" id="lancamentoForm" data-ano="{{ ano_atual }}" class="bg-white rounded-b-2xl px-6 sm:px-8 py-6 sm:py-8">
+      <form method="post" id="lancamentoForm" enctype="multipart/form-data" data-ano="{{ ano_atual }}" class="bg-white rounded-b-2xl px-6 sm:px-8 py-6 sm:py-8">
         {% csrf_token %}
-
-        {% for campo, erros in form.errors.items %}
-          {% for e in erros %}
-            <p class="mb-4 rounded-xl bg-[#FBE9E9] px-4 py-2 text-sm text-[#8A1C1C]">{{ e }}</p>
-          {% endfor %}
-        {% endfor %}
 
         <!-- 1. Receita/Despesa (Agora é o primeiro campo) -->
         <div id="contaField" class="relative">
           <label for="contaBusca" class="block text-sm sm:text-base mb-2">Receita/Despesa</label>
-          <input type="text" id="contaBusca" name="q" autocomplete="off"
+          <input type="text" id="contaBusca" name="q" value="{{ conta_descricao }}" autocomplete="off"
                  placeholder="Digite o código ou a descrição..."
                  hx-get="{% url 'financeiro:buscar_contas' %}" hx-trigger="input changed delay:200ms"
                  hx-target="#contaResultados" hx-swap="innerHTML"
                  class="w-full rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 text-sm sm:text-base outline-none focus:border-teal">
-          <input type="hidden" id="contaId" name="conta" value="">
+          <input type="hidden" id="contaId" name="conta" value="{{ form.conta.value|default_if_none:'' }}">
           <div id="contaResultados" class="hidden absolute left-0 right-0 mt-1 bg-white border border-[#CBD5D1] rounded-xl shadow-md overflow-hidden z-10"></div>
         </div>
 
@@ -59,7 +53,7 @@
                       class="form-select w-full rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 pr-9 text-sm sm:text-base outline-none focus:border-teal">
                 <option value="" disabled selected>Selecione um Centro...</option>
                 {% for c in form.fields.centro.queryset %}
-                <option value="{{ c.pk }}">{{ c.nome }}</option>
+                <option value="{{ c.pk }}" {% if centro_selecionado|stringformat:"s" == c.pk|stringformat:"s" %}selected{% endif %}>{{ c.nome }}</option>
                 {% endfor %}
               </select>
             </div>
@@ -73,27 +67,34 @@
             </div>
           </div>
 
+          <!-- Div oculta para guardar os erros do Django -->
+          <div id="errosOcultos" class="hidden">
+            {% for field, errors in form.errors.items %}
+              <span data-campo="{{ field }}">{{ errors.0 }}</span>
+            {% endfor %}
+          </div>
+
           <div class="mt-5 sm:mt-6">
             <label for="descricao" class="block text-sm sm:text-base mb-2">Descrição</label>
-            <input type="text" id="descricao" name="descricao" autocomplete="off" placeholder="DESCRIÇÃO DO LANÇAMENTO..."
+            <input type="text" id="descricao" name="descricao" value="{{ descricao_valor }}" autocomplete="off" placeholder="DESCRIÇÃO DO LANÇAMENTO..."
                    class="uppercase w-full rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 text-sm sm:text-base outline-none focus:border-teal">
           </div>
 
           <div class="mt-5 sm:mt-6">
             <label for="observacoes" class="block text-sm sm:text-base mb-2">Observações</label>
-            <input type="text" id="observacoes" name="observacoes" autocomplete="off" placeholder="Observações..."
+            <input type="text" id="observacoes" name="observacoes" value="{{ observacoes_valor }}" autocomplete="off" placeholder="Observações..."
                    class="w-full rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 text-sm sm:text-base outline-none focus:border-teal">
           </div>
 
           <div class="mt-5 sm:mt-6 grid grid-cols-2 gap-5 sm:gap-6">
             <div>
               <label for="notaAno" class="block text-sm sm:text-base mb-2">Nota fiscal (ano)</label>
-              <input type="text" id="notaAno" name="nota_fiscal_ano" inputmode="numeric" maxlength="4" tabindex="-1"
+              <input type="text" id="notaAno" name="nota_fiscal_ano" value="{{ nota_ano_valor }}" inputmode="numeric" maxlength="4" tabindex="-1"
                      class="w-full rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 text-sm sm:text-base outline-none focus:border-teal">
             </div>
             <div>
               <label for="notaNumero" class="block text-sm sm:text-base mb-2">Nota fiscal (número)</label>
-              <input type="text" id="notaNumero" name="nota_fiscal_numero" autocomplete="off"
+              <input type="text" id="notaNumero" name="nota_fiscal_numero" value="{{ nota_numero_valor }}" autocomplete="off"
                      class="w-full rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 text-sm sm:text-base outline-none focus:border-teal">
             </div>
           </div>
@@ -101,7 +102,7 @@
           <div class="mt-5 sm:mt-6 grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6 sm:items-end">
             <div>
               <label for="valor" class="block text-sm sm:text-base mb-2">Valor</label>
-              <input type="text" id="valor" name="valor" inputmode="numeric" autocomplete="off" placeholder="R$ 0,00"
+              <input type="text" id="valor" name="valor" value="{{ valor_valor }}" inputmode="numeric" autocomplete="off" placeholder="R$ 0,00"
                      class="w-full rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 text-sm sm:text-base outline-none focus:border-teal">
             </div>
             <label class="flex items-center gap-2 text-sm sm:text-base cursor-pointer select-none sm:pb-2.5">
@@ -130,20 +131,92 @@
                 Lançamento recorrente
               </label>
             </div>
-            <p id="recorrenteAviso" class="hidden mt-2 text-xs text-[#6B7B78]">Sem fim definido: serão criados os lançamentos dos próximos 12 meses.</p>
+            <p id="recorrenteAviso" class="hidden mt-2 text-xs text-[#6B7B78]">Sem fim definido: serão criados os lançamentos dos próximos 24 meses.</p>
+          </div>
+
+          <!-- NOVO: Baixar Automaticamente -->
+          <div class="mt-5 sm:mt-6">
+            <label class="inline-flex items-center gap-2.5 cursor-pointer select-none">
+              <input type="checkbox" id="baixarAutomaticamente" name="baixar_automaticamente" class="h-4 w-4 accent-[#58B6A2]">
+              <span class="text-sm sm:text-base font-medium">Baixar Automaticamente</span>
+            </label>
+
+            <div id="baixaAutoCampos" class="hidden mt-4 rounded-xl border border-[#CBD5D1] bg-[#F4F7F6] p-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label for="baixaCaixa" class="block text-sm sm:text-base mb-2">Baixa pelo Caixa</label>
+                <select id="baixaCaixa" name="caixa" class="form-select w-full rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 text-sm sm:text-base outline-none focus:border-teal">
+                  <option value="">Selecione um Caixa...</option>
+                  {% for c in form.fields.caixa.queryset %}
+                  <option value="{{ c.pk }}">{{ c.nome }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div>
+                <label for="baixaForma" class="block text-sm sm:text-base mb-2">Forma de Baixa</label>
+                <select id="baixaForma" name="forma_baixa" class="form-select w-full rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 text-sm sm:text-base outline-none focus:border-teal">
+                  <option value="">Selecione uma Forma...</option>
+                  {% for f in form.fields.forma_baixa.queryset %}
+                  <option value="{{ f.pk }}">{{ f.nome }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div>
+                <label for="baixaData" class="block text-sm sm:text-base mb-2">Data de Baixa</label>
+                <input type="text" id="baixaData" name="data_baixa" autocomplete="off" placeholder="dd/mm/aaaa"
+                       class="w-full rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 text-sm sm:text-base outline-none focus:border-teal">
+              </div>
+            </div>
+          </div>
+
+          <!-- NOVO: Rateio -->
+          <div class="mt-5 sm:mt-6">
+            <label class="inline-flex items-center gap-2.5 cursor-pointer select-none">
+              <input type="checkbox" id="rateioCheckbox" name="rateio" class="h-4 w-4 accent-[#58B6A2]">
+              <span class="text-sm sm:text-base font-medium">Rateio</span>
+            </label>
+
+            <div id="rateioConfig" class="hidden mt-4 bg-[#F9FBFA] border border-[#E3EAE8] rounded-xl p-4 sm:p-5">
+              <div class="flex items-center justify-between gap-4 mb-3">
+                <label for="rateioDivisoes" class="text-sm sm:text-base">Número de divisões:</label>
+                <select id="rateioDivisoes" class="form-select w-24 rounded-xl border border-[#CBD5D1] bg-white px-3 py-2 text-sm sm:text-base outline-none focus:border-teal">
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                  <option value="4">4</option>
+                </select>
+              </div>
+              <label class="inline-flex items-center gap-2.5 cursor-pointer select-none mb-4">
+                <input type="checkbox" id="rateioDividirIgualmente" class="w-4 h-4 accent-teal cursor-pointer">
+                <span class="text-sm sm:text-base">Dividir igualmente</span>
+              </label>
+              <div id="rateioLista" class="flex flex-col gap-3"></div>
+              <div class="flex items-center justify-between mt-4 pt-4 border-t border-[#E3EAE8]">
+                <span class="text-sm sm:text-base text-[#6B7B78]">Soma das porcentagens:</span>
+                <span id="rateioSoma" class="text-sm sm:text-base font-medium text-[#B91C1C]">0%</span>
+              </div>
+            </div>
           </div>
 
           <div class="mt-5 sm:mt-6 grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
             <div>
               <label for="dataCompetencia" class="block text-sm sm:text-base mb-2">Competência</label>
-              <input type="text" id="dataCompetencia" name="data_competencia" autocomplete="off" placeholder="dd/mm/aaaa"
+              <input type="text" id="dataCompetencia" name="data_competencia" value="{{ data_competencia_valor }}" autocomplete="off" placeholder="dd/mm/aaaa"
                      class="w-full rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 text-sm sm:text-base outline-none focus:border-teal">
             </div>
             <div>
               <label for="dataVencimento" class="block text-sm sm:text-base mb-2">Vencimento</label>
-              <input type="text" id="dataVencimento" name="data_vencimento" autocomplete="off" placeholder="dd/mm/aaaa"
+              <input type="text" id="dataVencimento" name="data_vencimento" value="{{ data_vencimento_valor }}" autocomplete="off" placeholder="dd/mm/aaaa"
                      class="w-full rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 text-sm sm:text-base outline-none focus:border-teal">
             </div>
+          </div>
+
+          <!-- Anexo -->
+          <div class="mt-5 sm:mt-6">
+            <label for="anexos" class="block text-sm sm:text-base mb-2">Anexar documento (Opcional)</label>
+            <input type="file" id="anexos" name="anexos" multiple accept=".jpg,.jpeg,.png,.pdf"
+                   class="block w-full text-sm text-ink border border-[#CBD5D1] rounded-xl px-3 py-2 cursor-pointer bg-white
+                          file:mr-3 file:py-1.5 file:px-4 file:rounded-lg file:border-0 file:text-sm
+                          file:bg-teal file:text-white hover:file:brightness-95">
+            <p class="text-xs text-[#6B7B78] mt-2">Você pode selecionar vários arquivos (JPG, PNG ou PDF).</p>
           </div>
 
           <div class="flex justify-end gap-3 mt-8">
@@ -151,7 +224,6 @@
             <button type="submit" class="bg-teal hover:brightness-95 transition-[filter] text-white rounded-xl px-8 py-2.5 text-sm sm:text-base">Salvar</button>
           </div>
         </div>
-
       </form>
     </div>
   </div>
@@ -459,6 +531,294 @@
   });
   qtdParcelas.addEventListener('input', () => {
     qtdParcelas.value = qtdParcelas.value.replace(/\D/g, '').slice(0, 2);
+  });
+
+  // --- Baixa Automática ---
+  const baixarAutomaticamente = document.getElementById('baixarAutomaticamente');
+  const baixaAutoCampos = document.getElementById('baixaAutoCampos');
+  
+  if (baixarAutomaticamente) {
+    baixarAutomaticamente.addEventListener('change', () => {
+      mostrar(baixaAutoCampos, baixarAutomaticamente.checked);
+      if (baixarAutomaticamente.checked) {
+        const hoje = new Date().toLocaleDateString('pt-BR');
+        const campoData = document.getElementById('baixaData');
+        if (campoData && !campoData.value) campoData.value = hoje;
+      }
+    });
+  }
+
+  // --- Rateio ---
+  const rateioCheckbox = document.getElementById('rateioCheckbox');
+  const rateioConfig = document.getElementById('rateioConfig');
+  const rateioDivisoes = document.getElementById('rateioDivisoes');
+  const rateioLista = document.getElementById('rateioLista');
+  const rateioSoma = document.getElementById('rateioSoma');
+  const rateioDividirIgualmente = document.getElementById('rateioDividirIgualmente');
+  
+  // Pega as referências dos selects do topo do formulário
+  const centroTopo = document.getElementById('centro');
+  const subcentroTopo = document.getElementById('subcentro');
+
+  function atualizarSomaRateio() {
+    const inputs = rateioLista.querySelectorAll('.rateio-bloco input[type="text"]');
+    let soma = 0;
+    inputs.forEach((input) => soma += parseInt(input.value, 10) || 0);
+    
+    rateioSoma.textContent = soma + '%';
+    if (soma === 100) {
+      rateioSoma.classList.replace('text-[#B91C1C]', 'text-[#15803D]');
+    } else {
+      rateioSoma.classList.replace('text-[#15803D]', 'text-[#B91C1C]');
+    }
+  }
+
+  function renderizarRateio() {
+    const n = parseInt(rateioDivisoes.value, 10);
+    rateioLista.innerHTML = '';
+    
+    const centroAtual = centroTopo ? centroTopo.value : '';
+    const subcentroAtual = subcentroTopo ? subcentroTopo.value : '';
+
+    for (let i = 0; i < n; i++) {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'rateio-bloco grid grid-cols-1 sm:grid-cols-[1fr_1fr_100px] gap-3 items-end';
+      
+      let opcoesCentro = `<option value="">Selecione...</option>`;
+      if (centroTopo) {
+        Array.from(centroTopo.options).forEach(opt => {
+          if (opt.value) {
+            const selected = (i === 0 && opt.value === centroAtual) ? 'selected' : '';
+            opcoesCentro += `<option value="${opt.value}" ${selected}>${opt.text}</option>`;
+          }
+        });
+      }
+
+      wrapper.innerHTML = `
+        <div>
+          <label class="block text-xs uppercase tracking-wide text-[#6B7B78] mb-1">Centro</label>
+          <select name="rateio_centro" class="rateio-centro form-select w-full rounded-xl border border-[#CBD5D1] bg-white px-3 py-2 text-sm outline-none focus:border-teal">
+            ${opcoesCentro}
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs uppercase tracking-wide text-[#6B7B78] mb-1">Sub-centro</label>
+          <select name="rateio_subcentro" class="rateio-subcentro form-select w-full rounded-xl border border-[#CBD5D1] bg-white px-3 py-2 text-sm outline-none focus:border-teal">
+            <option value="">Selecione...</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs uppercase tracking-wide text-[#6B7B78] mb-1">%</label>
+          <input type="text" name="rateio_pct" inputmode="numeric" maxlength="3" placeholder="0" class="rateio-pct w-full rounded-xl border border-[#CBD5D1] bg-white px-3 py-2 text-sm outline-none focus:border-teal text-right">
+        </div>
+      `;
+      
+      const pctInput = wrapper.querySelector('.rateio-pct');
+      const centroSelect = wrapper.querySelector('.rateio-centro');
+      const subcentroSelect = wrapper.querySelector('.rateio-subcentro');
+
+      pctInput.addEventListener('input', () => {
+        pctInput.value = pctInput.value.replace(/\D/g, '').slice(0, 3);
+        atualizarSomaRateio();
+      });
+
+      centroSelect.addEventListener('change', async () => {
+        subcentroSelect.innerHTML = '<option value="">Carregando...</option>';
+        
+        if (centroSelect.value === centroAtual && subcentroTopo && subcentroTopo.options.length > 1) {
+          subcentroSelect.innerHTML = '<option value="">Selecione...</option>';
+          Array.from(subcentroTopo.options).forEach(opt => {
+            if (opt.value) {
+              subcentroSelect.innerHTML += `<option value="${opt.value}">${opt.text}</option>`;
+            }
+          });
+        } else if (centroSelect.value) {
+          try {
+            const response = await fetch(`/financeiro/lancamentos/subcentros/?centro=${centroSelect.value}`);
+            const html = await response.text();
+            subcentroSelect.innerHTML = html;
+            subcentroSelect.querySelectorAll('option').forEach(o => o.disabled = false);
+          } catch (error) {
+            subcentroSelect.innerHTML = '<option value="">Erro ao carregar</option>';
+          }
+        } else {
+          subcentroSelect.innerHTML = '<option value="">Selecione...</option>';
+        }
+      });
+
+      if (i === 0 && centroAtual) {
+        if (subcentroTopo && subcentroTopo.options.length > 1) {
+          Array.from(subcentroTopo.options).forEach(opt => {
+            if (opt.value) {
+              const isSelected = (opt.value === subcentroAtual) ? 'selected' : '';
+              subcentroSelect.innerHTML += `<option value="${opt.value}" ${isSelected}>${opt.text}</option>`;
+            }
+          });
+        }
+      }
+
+      rateioLista.appendChild(wrapper);
+    }
+    
+    if (rateioDividirIgualmente.checked) {
+      aplicarDivisaoIgual();
+    } else {
+      atualizarSomaRateio();
+    }
+  }
+
+  // NOVO: Desabilitar campos do rateio quando não estiver em uso
+  // Isso evita que campos vazios sejam enviados no POST
+  if (rateioCheckbox) {
+    rateioCheckbox.addEventListener('change', () => {
+      mostrar(rateioConfig, rateioCheckbox.checked);
+      if (rateioCheckbox.checked) {
+        renderizarRateio();
+      } else {
+        // Se desmarcar o rateio, limpa a lista para não enviar lixo
+        rateioLista.innerHTML = '';
+      }
+    });
+  }
+
+  function aplicarDivisaoIgual() {
+    const n = parseInt(rateioDivisoes.value, 10);
+    const inputs = rateioLista.querySelectorAll('.rateio-pct');
+    
+    if (rateioDividirIgualmente.checked) {
+      const base = Math.floor(100 / n);
+      const resto = 100 - base * n;
+
+      inputs.forEach((input, i) => {
+        const valor = i === 0 ? base + resto : base;
+        input.value = String(valor);
+        input.readOnly = true; // MUDANÇA AQUI: readOnly em vez de disabled
+        input.classList.add('bg-[#F4F7F6]', 'text-[#9A9A9A]', 'cursor-not-allowed');
+      });
+    } else {
+      inputs.forEach((input) => {
+        input.value = '';
+        input.readOnly = false; // MUDANÇA AQUI
+        input.classList.remove('bg-[#F4F7F6]', 'text-[#9A9A9A]', 'cursor-not-allowed');
+      });
+    }
+    atualizarSomaRateio();
+  }
+
+  if (rateioCheckbox) {
+    rateioCheckbox.addEventListener('change', () => {
+      mostrar(rateioConfig, rateioCheckbox.checked);
+      if (rateioCheckbox.checked) renderizarRateio();
+    });
+  }
+
+  if (rateioDivisoes) {
+    rateioDivisoes.addEventListener('change', renderizarRateio);
+  }
+
+  if (rateioDividirIgualmente) {
+    rateioDividirIgualmente.addEventListener('change', aplicarDivisaoIgual);
+  }
+
+  // --- Lógica para manter os campos abertos se o Django retornar um erro ---
+  document.addEventListener("DOMContentLoaded", () => {
+    const contaIdVal = document.getElementById('contaId').value;
+    const centroVal = document.getElementById('centro').value;
+    const subcentroVal = document.getElementById('subcentro').value;
+
+    // Se a página recarregou e o usuário já tinha escolhido uma conta
+    if (contaIdVal && contaIdVal !== "None" && contaIdVal !== "") {
+      mostrar(restoCampos, true);
+      
+      // Se tinha escolhido centro mas não subcentro, precisamos forçar o subcentro a carregar
+      if (centroVal && !subcentroVal) {
+        // Dispara o evento para o HTMX carregar os subcentros do centro selecionado
+        const centroSelect = document.getElementById('centro');
+        if (centroSelect) centroSelect.dispatchEvent(new Event('change'));
+      }
+    }
+  });
+  // --- Mostrar erros embaixo dos campos ---
+  document.addEventListener("DOMContentLoaded", () => {
+    // 1. Manter campos abertos se deu erro
+    const contaIdVal = document.getElementById('contaId').value;
+    const centroVal = document.getElementById('centro').value;
+    
+    if (contaIdVal && contaIdVal !== "None" && contaIdVal !== "") {
+      mostrar(restoCampos, true);
+      if (centroVal) {
+        const centroSelect = document.getElementById('centro');
+        if (centroSelect) centroSelect.dispatchEvent(new Event('change'));
+      }
+    }
+
+    // 2. Pegar os erros da div oculta e colocar embaixo de cada campo
+    const errosOcultos = document.querySelectorAll('#errosOcultos span');
+    
+    const mapaCampos = {
+      'subcentro': 'subcentro',
+      'valor': 'valor',
+      'data_competencia': 'dataCompetencia',
+      'data_vencimento': 'dataVencimento',
+      'descricao': 'descricao',
+      'nota_fiscal_ano': 'notaAno',
+      'nota_fiscal_numero': 'notaNumero',
+      'observacoes': 'observacoes',
+      'conta': 'contaBusca',
+      'caixa': 'baixaCaixa',
+      'forma_baixa': 'baixaForma',
+      'data_baixa': 'baixaData'
+    };
+
+    errosOcultos.forEach(span => {
+      const campo = span.getAttribute('data-campo');
+      const mensagem = span.textContent;
+      const idCampo = mapaCampos[campo];
+      const input = document.getElementById(idCampo);
+
+      if (input && mensagem) {
+        // Borda vermelha no campo
+        input.classList.add('border-[#B91C1C]', 'border-2');
+        
+        // Texto do erro embaixo do campo
+        const erroEl = document.createElement('p');
+        erroEl.className = 'mt-1 text-xs text-[#B91C1C]';
+        erroEl.textContent = mensagem;
+        
+        input.parentNode.appendChild(erroEl);
+      }
+    });
+  });
+
+  // Impede marcar Rateio e Parcelado ao mesmo tempo
+  const parceladoCheck = document.getElementById('parcelado');
+  if (parceladoCheck && rateioCheckbox) {
+    parceladoCheck.addEventListener('change', () => {
+      if (parceladoCheck.checked) {
+        rateioCheckbox.checked = false;
+        rateioCheckbox.dispatchEvent(new Event('change'));
+      }
+    });
+    
+    rateioCheckbox.addEventListener('change', () => {
+      if (rateioCheckbox.checked) {
+        parceladoCheck.checked = false;
+        parceladoCheck.dispatchEvent(new Event('change'));
+      }
+    });
+  }
+
+  // Avisa se o form der erro que o anexo precisa ser selecionado de novo
+  document.addEventListener("DOMContentLoaded", () => {
+    if (document.querySelector('.text-\[\#B91C1C\]')) { // Se tem erro na tela
+      const anexoInput = document.getElementById('anexos');
+      if (anexoInput) {
+        const aviso = document.createElement('p');
+        aviso.className = 'mt-1 text-xs text-[#B91C1C]';
+        aviso.textContent = 'Atenção: devido ao erro, selecione o arquivo novamente.';
+        anexoInput.parentNode.appendChild(aviso);
+      }
+    }
   });
 </script>
 {% endblock %}

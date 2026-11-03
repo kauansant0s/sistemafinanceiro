@@ -116,16 +116,32 @@
 
       <div class="flex flex-col gap-0.5 col-span-2">
         <span class="text-[10px] uppercase tracking-wide text-[#6B7B78]">Caixa</span>
-        {% if l.caixa %}<span class="text-xs sm:text-sm text-ink">{{ l.caixa.nome }}</span>{% else %}<span class="text-xs sm:text-sm text-[#B91C1C] italic">—</span>{% endif %}
+        {% if l.data_baixa %}
+          <select name="caixa" class="input-edicao w-full">
+            <option value="">Selecione...</option>
+            {% for c in form.fields.caixa.queryset %}
+            <option value="{{ c.pk }}" {% if form.caixa.value|stringformat:"s" == c.pk|stringformat:"s" %}selected{% endif %}>{{ c.nome }}</option>
+            {% endfor %}
+          </select>
+          {% for e in form.caixa.errors %}<p class="mt-1 text-[11px] text-[#8A1C1C]">{{ e }}</p>{% endfor %}
+        {% else %}
+          <span class="text-xs sm:text-sm text-[#B91C1C] italic">— (Não baixado)</span>
+        {% endif %}
       </div>
+      
       <div class="flex flex-col gap-0.5 col-span-2">
         <span class="text-[10px] uppercase tracking-wide text-[#6B7B78]">Forma de baixa</span>
-        {% if l.forma_baixa %}<span class="text-xs sm:text-sm text-ink">{{ l.forma_baixa.nome }}</span>{% else %}<span class="text-xs sm:text-sm text-[#B91C1C] italic">—</span>{% endif %}
-      </div>
-
-      <div class="flex flex-col gap-0.5 col-span-2 sm:col-span-4">
-        <span class="text-[10px] uppercase tracking-wide text-[#6B7B78]">Observação</span>
-        <textarea name="observacoes" rows="3" class="input-edicao w-full resize-y min-h-[60px]">{{ form.observacoes.value|default_if_none:'' }}</textarea>
+        {% if l.data_baixa %}
+          <select name="forma_baixa" class="input-edicao w-full">
+            <option value="">Selecione...</option>
+            {% for f in form.fields.forma_baixa.queryset %}
+            <option value="{{ f.pk }}" {% if form.forma_baixa.value|stringformat:"s" == f.pk|stringformat:"s" %}selected{% endif %}>{{ f.nome }}</option>
+            {% endfor %}
+          </select>
+          {% for e in form.forma_baixa.errors %}<p class="mt-1 text-[11px] text-[#8A1C1C]">{{ e }}</p>{% endfor %}
+        {% else %}
+          <span class="text-xs sm:text-sm text-[#B91C1C] italic">— (Não baixado)</span>
+        {% endif %}
       </div>
     </div>
   </td>
