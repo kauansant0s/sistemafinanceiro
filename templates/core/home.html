@@ -5,7 +5,7 @@
 
 {% block extra_head %}
 <style>
-  #calBody td { height: 1px; } /* truque clássico: permite o filho usar height:100% acompanhando a altura real da linha */
+  #calBody td { height: 1px; }
 
   .cal-day { position: relative; height: 1px; }
   .cal-day-inner {
@@ -29,12 +29,91 @@
   }
 
   @media print {
-    body { background: #fff !important; }
-    main { padding: 0 !important; }
-    #calToggleDone, #calPrint, #calPrev, #calNext, #calToday { display: none !important; }
-    #calGotoPopup, #calTodayTooltip { display: none !important; }
+    /* Esconde menus, botões, modais e barras de navegação */
+    header, nav, #sidebar, .breadcrumb-bar, #calPrev, #calNext, #calToday, #calSettings, #modalConfig, #toastCalendario, #calGotoPopup { 
+      display: none !important; 
+    }
+
+    /* Zera margens e oculta a URL do site que o navegador tenta colocar */
+    @page { 
+      margin: 1cm; 
+    }
+    body, html { 
+      background: #fff !important; 
+      margin: 0 !important; 
+      padding: 0 !important; 
+    }
+    main { 
+      padding: 0 !important; 
+      margin: 0 !important; 
+      max-width: 100% !important; 
+    }
+    .w-full.max-w-2xl { 
+      max-width: 100% !important; 
+      width: 100% !important; 
+    }
+
+    /* Título */
+    h2 { display: none !important; }
+    #calLabel { 
+      display: block !important; 
+      font-size: 24px !important; 
+      font-weight: bold !important; 
+      text-align: center !important; 
+      margin-bottom: 20px !important;
+      width: 100% !important;
+      text-transform: uppercase;
+    }
+
+    /* Tabela */
+    .rounded-2xl.shadow-md.bg-white.border { 
+      box-shadow: none !important; 
+      border: none !important; 
+    }
+    table { 
+      width: 100% !important; 
+      border-collapse: collapse !important; 
+    }
+
+    /* CABEÇALHO DOS DIAS (NEGRITO E COM FUNDO) */
+    th { 
+      background-color: #e0e0e0 !important; /* Fundo cinza claro */
+      font-weight: bold !important; /* Negrito */
+      border: 2px solid #333 !important; 
+      padding: 10px !important;
+      font-size: 14px !important;
+      text-align: center !important;
+      -webkit-print-color-adjust: exact !important; /* Força o navegador a imprimir a cor de fundo */
+      print-color-adjust: exact !important;
+    }
+
+    /* CÉLULAS DOS DIAS */
+    td { 
+      border: 2px solid #333 !important; 
+      height: 100px !important; 
+    }
+    .cal-day-inner { 
+      box-shadow: none !important; 
+      transform: none !important; 
+      background: transparent !important; 
+      border: none !important;
+      padding: 5px !important;
+    }
+    
+    /* Tarefas e Feriados */
     .cal-task-input { display: none !important; }
-    .cal-day-inner { box-shadow: none !important; transform: none !important; background: transparent !important; }
+    .text-\[\#B91C1C\] { color: #000 !important; font-weight: bold !important; } /* Feriados em preto pra economizar tinta */
+    
+    .cal-day-inner {
+      word-wrap: break-word !important;
+      white-space: normal !important;
+      overflow-wrap: break-word !important;
+    }
+    
+    td {
+      /* Força a tabela a não ignorar o tamanho do quadrado */
+      word-break: break-word !important; 
+    }
   }
 </style>
 {% endblock %}
@@ -63,29 +142,8 @@
           <span id="calLabel" class="text-lg sm:text-2xl tracking-wide whitespace-nowrap text-center w-[16ch] sm:w-[15ch] shrink-0"></span>
           <button id="calNext" type="button" aria-label="Próximo mês" class="text-xl sm:text-2xl px-2 select-none">&gt;</button>
 
-          <!-- Agrupamento de botões da Direita (Olho, Impressora, Engrenagem) -->
-          <div class="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-3 sm:gap-5">
-            
-            <!-- Olho (Mostrar/Ocultar Concluídas) -->
-            <button id="calToggleDone" type="button" aria-label="Mostrar/ocultar tarefas concluídas" class="relative flex items-center justify-center">
-              <svg id="eyeOpen" width="28" height="28" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M1.66675 20C1.66675 20 8.33342 6.66666 20.0001 6.66666C31.6667 6.66666 38.3334 20 38.3334 20C38.3334 20 31.6667 33.3333 20.0001 33.3333C8.33342 33.3333 1.66675 20 1.66675 20Z" stroke="#1E1E1E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M20.0001 25C22.7615 25 25.0001 22.7614 25.0001 20C25.0001 17.2386 22.7615 15 20.0001 15C17.2387 15 15.0001 17.2386 15.0001 20C15.0001 22.7614 17.2387 25 20.0001 25Z" stroke="#1E1E1E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              <svg id="eyeClosed" class="hidden" width="28" height="28" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M35.88 35.88C32.4612 38.486 28.2982 39.9297 24 40C10 40 2 24 2 24C4.48778 19.3638 7.93827 15.3132 12.12 12.12M19.8 8.48C21.1767 8.15776 22.5861 7.99668 24 8C38 8 46 24 46 24C44.786 26.2712 43.3381 28.4095 41.68 30.38M28.24 28.24C27.6907 28.8295 27.0283 29.3023 26.2923 29.6302C25.5563 29.9582 24.7618 30.1345 23.9562 30.1487C23.1506 30.1629 22.3503 30.0148 21.6032 29.713C20.8561 29.4112 20.1774 28.9621 19.6077 28.3923C19.0379 27.8226 18.5888 27.1439 18.287 26.3968C17.9852 25.6497 17.8371 24.8494 17.8513 24.0438C17.8655 23.2382 18.0418 22.4437 18.3698 21.7077C18.6977 20.9717 19.1705 20.3093 19.76 19.76M2 2L46 46" stroke="#1E1E1E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              <span id="eyeTooltip" class="pointer-events-none absolute right-0 top-full mt-2 whitespace-nowrap bg-[#1E1E1E] text-white text-[11px] sm:text-xs px-2.5 py-1.5 rounded-md opacity-0 transition-opacity duration-150 z-50"></span>
-            </button>
-
-            <!-- Impressora -->
-            <button id="calPrint" type="button" aria-label="Imprimir calendário" class="relative flex items-center justify-center">
-              <svg width="24" height="24" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M9.99992 15V3.33331H29.9999V15M9.99992 30H6.66659C5.78253 30 4.93468 29.6488 4.30956 29.0237C3.68444 28.3985 3.33325 27.5507 3.33325 26.6666V18.3333C3.33325 17.4493 3.68444 16.6014 4.30956 15.9763C4.93468 15.3512 5.78253 15 6.66659 15H33.3333C34.2173 15 35.0652 15.3512 35.6903 15.9763C36.3154 16.6014 36.6666 17.4493 36.6666 18.3333V26.6666C36.6666 27.5507 36.3154 28.3985 35.6903 29.0237C35.0652 29.6488 34.2173 30 33.3333 30H29.9999M9.99992 23.3333H29.9999V36.6666H9.99992V23.3333Z" stroke="#1E1E1E" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              <span id="printTooltip" class="pointer-events-none absolute right-0 top-full mt-2 whitespace-nowrap bg-[#1E1E1E] text-white text-[11px] sm:text-xs px-2.5 py-1.5 rounded-md opacity-0 transition-opacity duration-150 z-50">Imprimir calendário</span>
-            </button>
-
+          <!-- Agrupamento de botões da Direita -->
+          <div class="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-4">
             <!-- Engrenagem (Configurações) -->
             <button id="calSettings" type="button" aria-label="Configurações do Calendário" class="relative flex items-center justify-center">
               <svg width="24" height="24" viewBox="0 0 55 55" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -105,9 +163,7 @@
         <!-- Popup para digitar mês/ano -->
         <div id="calGotoPopup" class="hidden absolute left-0 top-full mt-2 z-30 bg-white border border-[#E3EAE8] rounded-xl shadow-lg p-3 w-56">
           <label class="block text-[11px] uppercase tracking-wide text-[#6B6B6B] mb-1">Mês</label>
-          <select id="calGotoMes" class="w-full mb-2 px-2 py-1.5 text-sm rounded-lg border border-[#E3EAE8] bg-white outline-none">
-            <!-- preenchido via JS -->
-          </select>
+          <select id="calGotoMes" class="w-full mb-2 px-2 py-1.5 text-sm rounded-lg border border-[#E3EAE8] bg-white outline-none"></select>
           <label class="block text-[11px] uppercase tracking-wide text-[#6B6B6B] mb-1">Ano</label>
           <input id="calGotoAno" type="number" inputmode="numeric" class="w-full mb-3 px-2 py-1.5 text-sm rounded-lg border border-[#E3EAE8] bg-white outline-none" />
           <div class="flex items-center justify-end gap-2">
@@ -116,7 +172,7 @@
           </div>
         </div>
 
-        <!-- Tabela do Calendário -->
+        <!-- Tabela do Calendário (AGORA FORA DA DIV DE BOTÕES) -->
         <div class="rounded-2xl shadow-md bg-white border border-[#E3EAE8]">
           <table class="w-full border-collapse table-fixed">
             <thead>
@@ -134,43 +190,84 @@
       </div>
     </main>
 
-    <!-- Modal de Configurações de Automação -->
+    <!-- Modal de Configurações -->
     <div id="modalConfig" class="hidden fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/40 backdrop-blur-sm">
-      <div class="w-full max-w-lg bg-white rounded-2xl shadow-lg border border-[#E3EAE8] p-6 sm:p-7">
-        <div class="flex items-center justify-between mb-5">
-          <h2 class="text-lg sm:text-xl text-ink">Automações do Calendário</h2>
+      <div class="w-full max-w-md bg-white rounded-2xl shadow-lg border border-[#E3EAE8] flex flex-col max-h-[90vh]">
+        
+        <!-- Cabeçalho -->
+        <div class="flex items-center justify-between p-5 border-b border-[#E3EAE8]">
+          <h2 id="modalTitulo" class="text-lg font-medium text-ink">Configurações</h2>
           <button type="button" id="btnFecharConfig" class="text-[#6B7B78] hover:text-ink transition-colors">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M6 6L18 18M6 18L18 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
           </button>
         </div>
 
-        <!-- Formulário para adicionar -->
-        <div class="bg-[#F9FBFA] border border-[#E3EAE8] rounded-xl p-4 mb-4">
-          <label class="block text-sm mb-1">Nome da Tarefa</label>
-          <input type="text" id="cfgNome" placeholder="Ex: Faturar CASEMBRAPA, Pagar Impostos..." class="w-full rounded-lg border border-[#CBD5D1] px-3 py-2 text-sm mb-3 uppercase">
+        <!-- Conteúdo Principal (Menu) -->
+        <div id="menuConfig" class="p-5 flex flex-col gap-4 overflow-y-auto">
+          <button id="btnMenuImprimir" class="w-full text-left px-4 py-3 rounded-xl border border-[#E3EAE8] hover:bg-[#F4F7F6] transition-colors text-sm font-medium text-ink">
+            Imprimir Calendário
+          </button>
 
-          <div class="grid grid-cols-2 gap-3 mb-3">
-            <div>
-              <label class="block text-sm mb-1">Quando?</label>
-              <select id="cfgQuando" class="w-full rounded-lg border border-[#CBD5D1] px-3 py-2 text-sm">
-                <option value="primeiros_dias_uteis">Nos primeiros dias úteis</option>
-                <option value="ate_dia">Até o dia (Fixo)</option>
-              </select>
-            </div>
-            <div id="cfgDiaWrap" class="hidden">
-              <label class="block text-sm mb-1">Dia limite</label>
-              <input type="number" id="cfgDia" placeholder="10" class="w-full rounded-lg border border-[#CBD5D1] px-3 py-2 text-sm">
-            </div>
+          <div class="flex items-center justify-between px-4 py-3 rounded-xl border border-[#E3EAE8]">
+            <span class="text-sm font-medium text-ink">Mostrar tarefas finalizadas</span>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="toggleFinalizadas" class="sr-only peer" checked>
+              <div class="w-9 h-5 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal"></div>
+            </label>
           </div>
-          
-          <button type="button" id="btnAdicionarAutomacao" class="w-full bg-teal text-white rounded-xl py-2.5 text-sm hover:brightness-95 transition-all">Adicionar Automação</button>
+
+          <button id="btnMenuAutomacao" class="w-full text-left px-4 py-3 rounded-xl border border-[#E3EAE8] hover:bg-[#F4F7F6] transition-colors text-sm font-medium text-ink">
+            + Adicionar Tarefa Automatizada
+          </button>
         </div>
 
-        <!-- Lista de automações -->
-        <ul id="listaAutomacoes" class="max-h-60 overflow-y-auto space-y-2">
-          <!-- Preenchido via JS -->
-        </ul>
+        <!-- Tela de Automação (Inicia escondida) -->
+        <div id="telaAutomacao" class="hidden p-5 flex flex-col gap-4 overflow-y-auto">
+          <button id="btnVoltarMenu" class="text-sm text-[#6B7B78] hover:text-ink self-start flex items-center gap-1 mb-2">
+            &larr; Voltar
+          </button>
+
+          <div>
+            <label class="block text-sm mb-1">Nome da Tarefa</label>
+            <input type="text" id="cfgNome" placeholder="Ex: Faturar CASEMBRAPA..." class="w-full rounded-lg border border-[#CBD5D1] px-3 py-2 text-sm uppercase">
+          </div>
+
+          <div>
+            <label class="block text-sm mb-1">Tipo de Repetição</label>
+            <select id="cfgQuando" class="w-full rounded-lg border border-[#CBD5D1] px-3 py-2 text-sm">
+              <option value="primeiros_dias_uteis">Nos primeiros dias úteis</option>
+              <option value="ate_dia">Todo dia fixo do mês</option>
+            </select>
+          </div>
+          
+          <div id="cfgUteisWrap">
+            <label class="block text-sm mb-1">Quantos dias úteis?</label>
+            <input type="number" id="cfgDiasUteis" min="1" max="22" placeholder="Ex: 2" class="w-full rounded-lg border border-[#CBD5D1] px-3 py-2 text-sm">
+          </div>
+          
+          <div id="cfgDiaWrap" class="hidden">
+            <label class="block text-sm mb-1">Qual dia do mês?</label>
+            <input type="number" id="cfgDia" min="1" max="31" placeholder="Ex: 10" class="w-full rounded-lg border border-[#CBD5D1] px-3 py-2 text-sm">
+          </div>
+          
+          <button type="button" id="btnAdicionarAutomacao" class="w-full bg-teal text-white rounded-xl py-2.5 text-sm hover:brightness-95 transition-all mt-2">Salvar Automação</button>
+
+          <hr class="border-[#E3EAE8] my-2">
+
+          <ul id="listaAutomacoes" class="flex flex-col gap-2">
+            <!-- Preenchido via JS -->
+          </ul>
+        </div>
       </div>
+    </div>
+
+    <!-- Toast de Desfazer (Notificação embaixo) -->
+    <div id="toastCalendario" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 rounded-xl bg-ink text-white px-5 py-3 text-sm shadow-lg">
+      <span id="toastTexto">Tarefa marcada como finalizada.</span>
+      <button type="button" id="btnDesfazerTarefa" class="underline underline-offset-2 hover:opacity-80">Desfazer</button>
+      <svg id="toastTimer" class="w-5 h-5 shrink-0 -rotate-90" viewBox="0 0 20 20">
+        <circle id="toastTimerCirculo" cx="10" cy="10" r="5" fill="none" stroke="#FFFFFF" stroke-width="10" stroke-dasharray="31.416" stroke-dashoffset="0"/>
+      </svg>
     </div>
   </div>
 {% endblock %}
@@ -186,6 +283,8 @@
   // --- URLs do Backend ---
   const URL_API_TAREFAS = "{% url 'core:api_tarefas_calendario' %}";
   const URL_SALVAR_TAREFA = "{% url 'core:salvar_tarefa_calendario' %}";
+  const URL_API_REGRAS = "{% url 'core:api_regras_calendario' %}";
+  const URL_SALVAR_REGRA = "{% url 'core:salvar_regra_calendario' %}";
   const CSRF_TOKEN = "{{ csrf_token }}";
 
   let tasksStore = {};
@@ -229,7 +328,6 @@
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
         body: JSON.stringify({ titulo: texto, done: done })
       });
-      // NÃO chama carregarTarefasDoBanco() aqui! A tela já foi atualizada.
     } catch (error) { console.error(error); }
   }
 
@@ -239,17 +337,14 @@
         method: 'POST',
         headers: { 'X-CSRFToken': CSRF_TOKEN }
       });
-      // NÃO chama carregarTarefasDoBanco() aqui! A tela já foi atualizada.
     } catch (error) { console.error(error); }
   }
 
   // --- Feriados ---
   const FERIADOS_FIXOS = {
-    '1-1':   'Confraternização Universal', '4-21':  'Tiradentes',
-    '5-1':   'Dia do Trabalhador', '9-7':   'Independência do Brasil',
-    '9-20':  'Revolução Farroupilha', '10-12': 'Nossa Senhora Aparecida',
-    '11-2':  'Finados', '11-15': 'Proclamação da República',
-    '11-20': 'Dia Nacional de Zumbi e da Consciência Negra', '12-25': 'Natal',
+    '1-1': 'Confraternização Universal', '4-21': 'Tiradentes', '5-1': 'Dia do Trabalhador',
+    '9-7': 'Independência do Brasil', '9-20': 'Revolução Farroupilha', '10-12': 'Nossa Senhora Aparecida',
+    '11-2': 'Finados', '11-15': 'Proclamação da República', '11-20': 'Dia Nacional de Zumbi e da Consciência Negra', '12-25': 'Natal',
   };
   const FERIADOS_MOVEIS = { 2026: { '2-17': 'Carnaval', '4-3': 'Paixão de Cristo', '6-4': 'Corpus Christi' } };
 
@@ -261,54 +356,69 @@
   const calLabel = document.getElementById('calLabel');
   const calBody = document.getElementById('calBody');
   let showCompleted = true;
-  const eyeOpen = document.getElementById('eyeOpen');
-  const eyeClosed = document.getElementById('eyeClosed');
-  const calToggleDoneBtn = document.getElementById('calToggleDone');
-  const eyeTooltip = document.getElementById('eyeTooltip');
-  let eyeHoverTimer = null;
-
-  // Toggle Concluídas
-  calToggleDoneBtn.addEventListener('mouseenter', () => { eyeHoverTimer = setTimeout(() => { eyeTooltip.textContent = showCompleted ? 'Ocultar concluídas' : 'Mostrar concluídas'; eyeTooltip.classList.remove('opacity-0'); eyeTooltip.classList.add('opacity-100'); }, 200); });
-  calToggleDoneBtn.addEventListener('mouseleave', () => { clearTimeout(eyeHoverTimer); eyeTooltip.classList.remove('opacity-100'); eyeTooltip.classList.add('opacity-0'); });
-  calToggleDoneBtn.addEventListener('click', () => { showCompleted = !showCompleted; eyeOpen.classList.toggle('hidden', !showCompleted); eyeClosed.classList.toggle('hidden', showCompleted); renderCalendar(calYear, calMonth); });
-
-  // Imprimir
-  const calPrintBtn = document.getElementById('calPrint');
-  const printTooltip = document.getElementById('printTooltip');
-  let printHoverTimer = null;
-  calPrintBtn.addEventListener('mouseenter', () => { printHoverTimer = setTimeout(() => { printTooltip.classList.remove('opacity-0'); printTooltip.classList.add('opacity-100'); }, 200); });
-  calPrintBtn.addEventListener('mouseleave', () => { clearTimeout(printHoverTimer); printTooltip.classList.remove('opacity-100'); printTooltip.classList.add('opacity-0'); });
-  calPrintBtn.addEventListener('click', () => window.print());
-
   let dayCellsOrder = [];
 
+  // --- Toast de Desfazer ---
+  const toastCalendario = document.getElementById('toastCalendario');
+  const btnDesfazerTarefa = document.getElementById('btnDesfazerTarefa');
+  const toastTimerCirculo = document.getElementById('toastTimerCirculo');
+  let toastAnimacao = null;
+  let toastTimeout = null;
+  let ultimaTarefaAlterada = null;
+
+  function mostrarToastDesfazer(task) {
+    ultimaTarefaAlterada = task;
+    toastCalendario.classList.remove('hidden');
+    
+    if (toastAnimacao) toastAnimacao.cancel();
+    toastTimerCirculo.style.strokeDashoffset = 0;
+    toastAnimacao = toastTimerCirculo.animate(
+      [{ strokeDashoffset: 0 }, { strokeDashoffset: 31.416 }],
+      { duration: 5000, easing: 'linear', fill: 'forwards' }
+    );
+
+    clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => {
+      toastCalendario.classList.add('hidden');
+      ultimaTarefaAlterada = null;
+    }, 5000);
+  }
+
+  if (btnDesfazerTarefa) {
+    btnDesfazerTarefa.addEventListener('click', () => {
+      if (!ultimaTarefaAlterada) return;
+      clearTimeout(toastTimeout);
+      toastCalendario.classList.add('hidden');
+      
+      ultimaTarefaAlterada.done = false;
+      editarTarefaAPI(ultimaTarefaAlterada.id, ultimaTarefaAlterada.text, false);
+      renderCalendar(calYear, calMonth);
+      ultimaTarefaAlterada = null;
+    });
+  }
+
+  // --- makeTaskLine ---
   function makeTaskLine(inner, key, index) {
     const task = tasksStore[key][index];
     const taskLine = document.createElement('div');
-    taskLine.className = 'text-[10px] sm:text-[11px] leading-snug mt-1 cursor-pointer ' + (task.done ? 'text-[#9A9A9A] line-through' : 'text-[#4A4A4A]');
+    taskLine.className = 'text-[10px] sm:text-[11px] leading-snug mt-1 cursor-pointer break-words whitespace-normal ' + (task.done ? 'text-[#9A9A9A] line-through' : 'text-[#4A4A4A]');
     taskLine.textContent = '• ' + task.text;
 
-    // Clique simples para riscar (feito de forma otimista na tela)
     taskLine.addEventListener('click', () => {
       if (taskLine._clickTimer) { clearTimeout(taskLine._clickTimer); taskLine._clickTimer = null; return; }
+      
       taskLine._clickTimer = setTimeout(() => {
         taskLine._clickTimer = null;
         task.done = !task.done;
         
-        // Atualiza visualmente na hora
-        taskLine.className = 'text-[10px] sm:text-[11px] leading-snug mt-1 cursor-pointer ' + (task.done ? 'text-[#9A9A9A] line-through' : 'text-[#4A4A4A]');
-        
-        // Se a tarefa foi riscada e a opção for esconder as riscadas
-        if (task.done && !showCompleted) {
-            taskLine.remove();
-        }
-        
-        // Salva no banco em segundo plano
         editarTarefaAPI(task.id, task.text, task.done);
+        
+        if (task.done) mostrarToastDesfazer(task);
+
+        renderCalendar(calYear, calMonth);
       }, 220);
     });
 
-    // Duplo clique para editar
     taskLine.addEventListener('dblclick', (e) => {
       e.stopPropagation();
       if (taskLine._clickTimer) { clearTimeout(taskLine._clickTimer); taskLine._clickTimer = null; }
@@ -316,6 +426,146 @@
     });
     return taskLine;
   }
+
+  // --- Modal de Configurações ---
+  const btnConfig = document.getElementById('calSettings');
+  const modalConfig = document.getElementById('modalConfig');
+  
+  if (btnConfig && modalConfig) {
+    const btnFecharConfig = document.getElementById('btnFecharConfig');
+    const menuConfig = document.getElementById('menuConfig');
+    const telaAutomacao = document.getElementById('telaAutomacao');
+    const modalTitulo = document.getElementById('modalTitulo');
+    const toggleFinalizadas = document.getElementById('toggleFinalizadas');
+
+    btnConfig.addEventListener('click', () => {
+      modalConfig.classList.remove('hidden');
+      menuConfig.classList.remove('hidden');
+      telaAutomacao.classList.add('hidden');
+      modalTitulo.textContent = 'Configurações';
+    });
+
+    btnFecharConfig.addEventListener('click', () => modalConfig.classList.add('hidden'));
+
+    document.getElementById('btnMenuAutomacao').addEventListener('click', () => {
+      menuConfig.classList.add('hidden');
+      telaAutomacao.classList.remove('hidden');
+      modalTitulo.textContent = 'Automações';
+      if (typeof carregarRegras === 'function') carregarRegras();
+    });
+
+    document.getElementById('btnVoltarMenu').addEventListener('click', () => {
+      telaAutomacao.classList.add('hidden');
+      menuConfig.classList.remove('hidden');
+      modalTitulo.textContent = 'Configurações';
+    });
+
+    // Imprimir
+    document.getElementById('btnMenuImprimir').addEventListener('click', () => {
+      modalConfig.classList.add('hidden'); // Fecha o modal
+      setTimeout(() => {
+        window.print(); // Abre a impressão
+      }, 150); // 150 milissegundos de espera
+    });
+
+    toggleFinalizadas.addEventListener('change', () => {
+      showCompleted = toggleFinalizadas.checked;
+      renderCalendar(calYear, calMonth);
+    });
+  }
+
+  // --- Lógica Visual da Automação ---
+  const cfgQuando = document.getElementById('cfgQuando');
+  if (cfgQuando) {
+    cfgQuando.addEventListener('change', () => {
+      if (cfgQuando.value === 'ate_dia') {
+        document.getElementById('cfgDiaWrap').classList.remove('hidden');
+        document.getElementById('cfgUteisWrap').classList.add('hidden');
+      } else {
+        document.getElementById('cfgDiaWrap').classList.add('hidden');
+        document.getElementById('cfgUteisWrap').classList.remove('hidden');
+      }
+    });
+  }
+
+  // --- Funções de Comunicação com o Banco (Regras) ---
+  async function carregarRegras() {
+    try {
+      const resp = await fetch(URL_API_REGRAS);
+      const regras = await resp.json();
+      
+      const listaAutomacoes = document.getElementById('listaAutomacoes');
+      listaAutomacoes.innerHTML = '';
+      
+      if (regras.length === 0) {
+        listaAutomacoes.innerHTML = '<li class="text-sm text-[#6B7B78] text-center py-4">Nenhuma automação cadastrada.</li>';
+        return;
+      }
+
+      regras.forEach(r => {
+        const li = document.createElement('li');
+        li.className = 'flex justify-between items-center bg-white border border-[#E3EAE8] p-3 rounded-lg text-sm';
+        const texto = r.tipo === 'ate_dia' ? `Todo dia ${r.dias} do mês` : `Nos ${r.dias} primeiros dias úteis`;
+        
+        li.innerHTML = `
+          <div>
+            <strong class="block text-ink">${r.titulo}</strong>
+            <span class="text-xs text-[#6B7B78]">${texto}</span>
+          </div>
+          <button type="button" class="text-[#B91C1C] hover:opacity-70" onclick="excluirRegra(${r.id})">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 6L18 18M6 18L18 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </button>
+        `;
+        listaAutomacoes.appendChild(li);
+      });
+    } catch (error) {
+      console.error("Erro ao carregar regras:", error);
+    }
+  }
+
+  document.getElementById('btnAdicionarAutomacao').addEventListener('click', async () => {
+    const titulo = document.getElementById('cfgNome').value.trim();
+    const tipo = cfgQuando.value;
+    let dias = 0;
+    
+    if (!titulo) return alert("Digite o nome da tarefa.");
+
+    if (tipo === 'ate_dia') {
+      dias = parseInt(document.getElementById('cfgDia').value);
+      if (!dias || dias < 1 || dias > 31) return alert("Digite um dia válido (1 a 31).");
+    } else {
+      dias = parseInt(document.getElementById('cfgDiasUteis').value);
+      if (!dias || dias < 1 || dias > 22) return alert("Digite uma quantidade válida de dias úteis (1 a 22).");
+    }
+
+    try {
+      await fetch(URL_SALVAR_REGRA, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+        body: JSON.stringify({ titulo, tipo, dias })
+      });
+      
+      document.getElementById('cfgNome').value = '';
+      document.getElementById('cfgDia').value = '';
+      document.getElementById('cfgDiasUteis').value = '';
+      carregarRegras();
+    } catch (error) {
+      console.error("Erro ao salvar regra:", error);
+    }
+  });
+
+  window.excluirRegra = async function(id) {
+    if (!confirm("Excluir esta automação?")) return;
+    try {
+      await fetch(`/core/regras/excluir/${id}/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': CSRF_TOKEN }
+      });
+      carregarRegras();
+    } catch (error) {
+      console.error("Erro ao excluir regra:", error);
+    }
+  };
 
   function startEditingTask(inner, taskLine, key, index) {
     const task = tasksStore[key][index];
@@ -335,19 +585,16 @@
       
       if (save && text) {
         if (text !== task.text) {
-          task.text = text; // Atualiza memória
-          editarTarefaAPI(task.id, text, task.done); // Salva no banco
+          task.text = text; 
+          editarTarefaAPI(task.id, text, task.done); 
         }
-        // Cria a linha visual novamente com o texto novo
         const newLine = makeTaskLine(inner, key, index);
         input.replaceWith(newLine);
       } else if (save && !text) {
-        // Se apagou tudo, remove
         excluirTarefaAPI(task.id);
         tasksStore[key].splice(index, 1);
         input.remove();
       } else {
-        // Se cancelou (Escape), volta pro texto antigo
         const newLine = makeTaskLine(inner, key, index);
         input.replaceWith(newLine);
       }
@@ -387,7 +634,6 @@
         const [ano, mes, dia] = key.split('-');
         const dataFormatada = `${ano}-${String(parseInt(mes) + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
         
-        // Salva no banco em segundo plano e SILENCIOSAMENTE
         fetch(URL_SALVAR_TAREFA, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
@@ -431,6 +677,8 @@
   }
 
   function renderCalendar(year, month) {
+    if (!calLabel || !calBody) return; // Proteção caso não encontre os elementos
+
     calLabel.textContent = MESES[month] + ' ' + year;
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const firstDow = new Date(year, month, 1).getDay();
@@ -440,7 +688,9 @@
     for (let d = 1; d <= daysInMonth; d++) cells.push(d);
     while (cells.length % 7 !== 0) cells.push(null);
 
-    dayCellsOrder = []; calBody.innerHTML = '';
+    dayCellsOrder = []; 
+    calBody.innerHTML = '';
+    
     for (let w = 0; w < cells.length / 7; w++) {
       const tr = document.createElement('tr');
       for (let c = 0; c < 5; c++) {
@@ -448,26 +698,32 @@
         const isToday = val && year === today.getFullYear() && month === today.getMonth() && val === today.getDate();
         const td = document.createElement('td');
         td.className = 'align-top border-b border-r border-[#E3EAE8] last:border-r-0' + (isToday ? ' cal-today' : '') + (val ? ' cal-day' : '');
+        
         if (val) {
           const key = dateKey(year, month, val);
           const inner = document.createElement('div');
           inner.className = 'cal-day-inner px-2.5 sm:px-3 pt-2 pb-2 min-h-16 sm:min-h-20 text-sm sm:text-base text-[#333]';
+          
           const numberSpan = document.createElement('div');
-          numberSpan.textContent = val; inner.appendChild(numberSpan);
+          numberSpan.textContent = val; 
+          inner.appendChild(numberSpan);
 
           const feriado = getFeriado(year, month, val);
           if (feriado) {
             const feriadoEl = document.createElement('div');
             feriadoEl.className = 'text-[10px] sm:text-[11px] font-bold uppercase tracking-wide text-[#B91C1C] mt-1 leading-snug';
-            feriadoEl.textContent = `FERIADO - ${feriado}`; inner.appendChild(feriadoEl);
+            feriadoEl.textContent = `FERIADO - ${feriado}`; 
+            inner.appendChild(feriadoEl);
           }
 
           (tasksStore[key] || []).forEach((task, taskIndex) => {
             if (task.done && !showCompleted) return;
             inner.appendChild(makeTaskLine(inner, key, taskIndex));
           });
+          
           inner.addEventListener('dblclick', () => startAddingTask(inner, key));
-          td.appendChild(inner); dayCellsOrder.push({ key, inner });
+          td.appendChild(inner); 
+          dayCellsOrder.push({ key, inner });
         }
         tr.appendChild(td);
       }
@@ -483,145 +739,81 @@
   const calGotoPopup = document.getElementById('calGotoPopup');
   const calGotoAno   = document.getElementById('calGotoAno');
   let calTodayClickTimer = null;
+  const calTodayTooltip = document.getElementById('calTodayTooltip');
+  let calTodayTooltipTimer = null;
 
-  calTodayBtn.addEventListener('click', () => {
-    clearTimeout(calTodayTooltipTimer); calTodayTooltip.classList.remove('opacity-100'); calTodayTooltip.classList.add('opacity-0');
-    if (calTodayClickTimer) return;
-    calTodayClickTimer = setTimeout(() => {
-      calTodayClickTimer = null;
-      const jaAberto = !calGotoPopup.classList.contains('hidden');
-      jaAberto ? fecharGotoPopup() : abrirGotoPopup();
-    }, 220);
-  });
+  if (calTodayBtn) {
+    calTodayBtn.addEventListener('click', () => {
+      clearTimeout(calTodayTooltipTimer); 
+      if (calTodayTooltip) {
+        calTodayTooltip.classList.remove('opacity-100'); 
+        calTodayTooltip.classList.add('opacity-0');
+      }
+      if (calTodayClickTimer) return;
+      calTodayClickTimer = setTimeout(() => {
+        calTodayClickTimer = null;
+        const jaAberto = !calGotoPopup.classList.contains('hidden');
+        jaAberto ? fecharGotoPopup() : abrirGotoPopup();
+      }, 220);
+    });
 
-  calTodayBtn.addEventListener('dblclick', () => {
-    if (calTodayClickTimer) { clearTimeout(calTodayClickTimer); calTodayClickTimer = null; }
-    fecharGotoPopup(); calYear = today.getFullYear(); calMonth = today.getMonth(); renderCalendar(calYear, calMonth);
-  });
+    calTodayBtn.addEventListener('dblclick', () => {
+      if (calTodayClickTimer) { clearTimeout(calTodayClickTimer); calTodayClickTimer = null; }
+      fecharGotoPopup(); 
+      calYear = today.getFullYear(); 
+      calMonth = today.getMonth(); 
+      renderCalendar(calYear, calMonth);
+    });
 
-  function abrirGotoPopup() { calGotoMes.value = String(calMonth); calGotoAno.value = calYear; calGotoPopup.classList.remove('hidden'); setTimeout(() => calGotoMes.focus(), 0); }
-  function fecharGotoPopup() { calGotoPopup.classList.add('hidden'); }
+    calTodayBtn.addEventListener('mouseenter', () => { calTodayTooltipTimer = setTimeout(() => { if(calTodayTooltip) { calTodayTooltip.classList.remove('opacity-0'); calTodayTooltip.classList.add('opacity-100'); } }, 200); });
+    calTodayBtn.addEventListener('mouseleave', () => { clearTimeout(calTodayTooltipTimer); if(calTodayTooltip) { calTodayTooltip.classList.remove('opacity-100'); calTodayTooltip.classList.add('opacity-0'); } });
+  }
+
+  function abrirGotoPopup() { 
+    if (!calGotoPopup) return;
+    const calGotoMes = document.getElementById('calGotoMes');
+    calGotoMes.value = String(calMonth); 
+    calGotoAno.value = calYear; 
+    calGotoPopup.classList.remove('hidden'); 
+    setTimeout(() => calGotoMes.focus(), 0); 
+  }
+  
+  function fecharGotoPopup() { if (calGotoPopup) calGotoPopup.classList.add('hidden'); }
+  
   document.getElementById('calGotoCancelar').addEventListener('click', fecharGotoPopup);
   document.getElementById('calGotoIr').addEventListener('click', () => {
-    const novoMes = parseInt(calGotoMes.value, 10); const novoAno = parseInt(calGotoAno.value, 10);
+    const calGotoMes = document.getElementById('calGotoMes');
+    const novoMes = parseInt(calGotoMes.value, 10); 
+    const novoAno = parseInt(calGotoAno.value, 10);
     if (Number.isNaN(novoMes) || Number.isNaN(novoAno)) return;
-    calYear = novoAno; calMonth = novoMes; renderCalendar(calYear, calMonth); fecharGotoPopup();
-  });
-  document.addEventListener('click', (e) => {
-    if (calGotoPopup.classList.contains('hidden')) return;
-    if (calGotoPopup.contains(e.target) || calTodayBtn.contains(e.target)) return;
+    calYear = novoAno; 
+    calMonth = novoMes; 
+    renderCalendar(calYear, calMonth); 
     fecharGotoPopup();
   });
 
-  const calTodayTooltip = document.getElementById('calTodayTooltip');
-  let calTodayTooltipTimer = null;
-  calTodayBtn.addEventListener('mouseenter', () => { calTodayTooltipTimer = setTimeout(() => { calTodayTooltip.classList.remove('opacity-0'); calTodayTooltip.classList.add('opacity-100'); }, 200); });
-  calTodayBtn.addEventListener('mouseleave', () => { clearTimeout(calTodayTooltipTimer); calTodayTooltip.classList.remove('opacity-100'); calTodayTooltip.classList.add('opacity-0'); });
+  document.addEventListener('click', (e) => {
+    if (!calGotoPopup || calGotoPopup.classList.contains('hidden')) return;
+    if (calGotoPopup.contains(e.target) || (calTodayBtn && calTodayBtn.contains(e.target))) return;
+    fecharGotoPopup();
+  });
 
-  // Inicialização
+  // Inicialização dos meses
   const calGotoMes = document.getElementById('calGotoMes');
-  MESES.forEach((nome, idx) => { const opt = document.createElement('option'); opt.value = idx; opt.textContent = nome; calGotoMes.appendChild(opt); });
+  if (calGotoMes) {
+    MESES.forEach((nome, idx) => { 
+      const opt = document.createElement('option'); 
+      opt.value = idx; 
+      opt.textContent = nome; 
+      calGotoMes.appendChild(opt); 
+    });
+  }
 
+  // DESENHA O CALENDÁRIO IMEDIATAMENTE E DEPOIS CARREGA AS TAREFAS
+  renderCalendar(calYear, calMonth);
+  
   document.addEventListener('DOMContentLoaded', () => {
     carregarTarefasDoBanco();
   });
-  renderCalendar(calYear, calMonth);
-
-  // --- Modal de Configurações ---
-  const modalConfig = document.getElementById('modalConfig');
-  const btnFecharConfig = document.getElementById('btnFecharConfig');
-  
-  const cfgQuando = document.getElementById('cfgQuando');
-  const cfgDiaWrap = document.getElementById('cfgDiaWrap');
-  const listaAutomacoes = document.getElementById('listaAutomacoes');
-
-  // URLs do Backend
-  const URL_API_REGRAS = "{% url 'core:api_regras_calendario' %}";
-  const URL_SALVAR_REGRA = "{% url 'core:salvar_regra_calendario' %}";
-
-  document.getElementById('calSettings').addEventListener('click', () => {
-    modalConfig.classList.remove('hidden');
-    carregarRegras(); // Carrega a lista do banco ao abrir
-  });
-  
-  btnFecharConfig.addEventListener('click', () => {
-    modalConfig.classList.add('hidden');
-  });
-
-  cfgQuando.addEventListener('change', () => {
-    cfgDiaWrap.classList.toggle('hidden', cfgQuando.value !== 'ate_dia');
-  });
-
-  // --- Funções do Banco de Dados ---
-  async function carregarRegras() {
-    try {
-      const resp = await fetch(URL_API_REGRAS);
-      const regras = await resp.json();
-      
-      listaAutomacoes.innerHTML = '';
-      if (regras.length === 0) {
-        listaAutomacoes.innerHTML = '<li class="text-sm text-[#6B7B78] text-center py-4">Nenhuma automação cadastrada.</li>';
-        return;
-      }
-
-      regras.forEach(r => {
-        const li = document.createElement('li');
-        li.className = 'flex justify-between items-center bg-white border border-[#E3EAE8] p-3 rounded-lg text-sm';
-        
-        const texto = r.tipo === 'ate_dia' 
-          ? `Todo dia ${r.dias}` 
-          : `${r.dias}º dia(s) útil(eis)`;
-
-        li.innerHTML = `
-          <div>
-            <strong class="block text-ink">${r.titulo}</strong>
-            <span class="text-xs text-[#6B7B78]">${texto}</span>
-          </div>
-          <button type="button" class="text-[#B91C1C] hover:opacity-70" onclick="excluirRegra(${r.id})">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 6L18 18M6 18L18 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-          </button>
-        `;
-        listaAutomacoes.appendChild(li);
-      });
-    } catch (error) {
-      console.error("Erro ao carregar regras:", error);
-    }
-  }
-
-  document.getElementById('btnAdicionarAutomacao').addEventListener('click', async () => {
-    const titulo = document.getElementById('cfgNome').value.trim();
-    const tipo = cfgQuando.value;
-    const dias = tipo === 'ate_dia' ? parseInt(document.getElementById('cfgDia').value) : 2; 
-    
-    if (!titulo) return alert("Digite o nome da tarefa.");
-    if (tipo === 'ate_dia' && (!dias || dias < 1 || dias > 31)) return alert("Digite um dia válido (1 a 31).");
-
-    try {
-      await fetch(URL_SALVAR_REGRA, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
-        body: JSON.stringify({ titulo, tipo, dias })
-      });
-      
-      document.getElementById('cfgNome').value = '';
-      document.getElementById('cfgDia').value = '';
-      carregarRegras(); // Recarrega a lista
-    } catch (error) {
-      console.error("Erro ao salvar regra:", error);
-    }
-  });
-
-  window.excluirRegra = async function(id) {
-    if (!confirm("Excluir esta automação?")) return;
-    try {
-      await fetch(`/core/regras/excluir/${id}/`, {
-        method: 'POST',
-        headers: { 'X-CSRFToken': CSRF_TOKEN }
-      });
-      carregarRegras();
-    } catch (error) {
-      console.error("Erro ao excluir regra:", error);
-    }
-  };
 </script>
 {% endblock %}
