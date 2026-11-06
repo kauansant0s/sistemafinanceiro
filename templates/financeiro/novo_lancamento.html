@@ -35,15 +35,7 @@
         <!-- 2. O Resto dos Campos (Escondido até escolher a conta) -->
         <div id="restoCampos" class="hidden">
 
-        <!-- Campo de Convênio (Customizado) -->
-        <div id="convenioField" class="hidden mt-5 sm:mt-6 relative">
-          <label for="convenioInput" class="block text-sm sm:text-base mb-2">Convênio</label>
-          <input type="text" id="convenioInput" name="convenio" autocomplete="off"
-                  placeholder="Digite o nome do convênio..."
-                  class="w-full rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 text-sm sm:text-base outline-none focus:border-teal">
-          <div id="convenioResultados" class="hidden absolute left-0 right-0 mt-1 bg-white border border-[#CBD5D1] rounded-xl shadow-md overflow-hidden z-10"></div>
-        </div>
-          
+          <!-- Centro e Sub-Centro (Movidos para cima) -->
           <div class="mt-5 sm:mt-6 grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
             <div>
               <label for="centro" class="block text-sm sm:text-base mb-2">Centro</label>
@@ -62,9 +54,21 @@
               <label for="subcentro" class="block text-sm sm:text-base mb-2">Sub-Centro</label>
               <select id="subcentro" name="subcentro"
                       class="form-select w-full rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 pr-9 text-sm sm:text-base outline-none focus:border-teal">
-                <option value="" disabled selected>Selecione um Centro primeiro...</option>
+                <option value="" disabled {% if not subcentro_selecionado %}selected{% endif %}>Selecione um Centro primeiro...</option>
+                {% if centro_selecionado %}
+                  {% include "partials/subcentro_options.html" %}
+                {% endif %}
               </select>
             </div>
+          </div>
+
+          <!-- Campo de Convênio (Agora vem logo após o Centro/Subcentro) -->
+          <div id="convenioField" class="hidden mt-5 sm:mt-6 relative">
+            <label for="convenioInput" class="block text-sm sm:text-base mb-2">Convênio</label>
+            <input type="text" id="convenioInput" name="convenio" autocomplete="off"
+                    placeholder="Digite o nome do convênio..."
+                    class="w-full rounded-xl border border-[#CBD5D1] bg-white px-4 py-2.5 text-sm sm:text-base outline-none focus:border-teal">
+            <div id="convenioResultados" class="hidden absolute left-0 right-0 mt-1 bg-white border border-[#CBD5D1] rounded-xl shadow-md overflow-hidden z-10"></div>
           </div>
 
           <!-- Div oculta para guardar os erros do Django -->
@@ -220,7 +224,7 @@
           </div>
 
           <div class="flex justify-end gap-3 mt-8">
-            <a href="{% url 'home' %}" class="rounded-xl border border-[#CBD5D1] px-6 py-2.5 text-sm sm:text-base no-underline text-ink hover:bg-[#F4F7F6]">Cancelar</a>
+            <a href="{% url 'core:home' %}" class="rounded-xl border border-[#CBD5D1] px-6 py-2.5 text-sm sm:text-base no-underline text-ink hover:bg-[#F4F7F6]">Cancelar</a>
             <button type="submit" class="bg-teal hover:brightness-95 transition-[filter] text-white rounded-xl px-8 py-2.5 text-sm sm:text-base">Salvar</button>
           </div>
         </div>
@@ -250,6 +254,10 @@
     }
   });
 
+  function normalizar(texto) {
+    return texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  }
+
   function mostrar(el, sim) { el.classList.toggle('hidden', !sim); }
 
   // Abrevia a escolha de uma conta
@@ -274,7 +282,6 @@
     
     if (opcao.dataset.texto.startsWith('101')) {
       mostrar(convenioField, true);
-      document.getElementById('convenioInput').focus();
     } else {
       mostrar(convenioField, false);
       document.getElementById('convenioInput').value = '';
@@ -412,7 +419,81 @@
   // --- Lógica do Autocomplete de Convênios (com navegação por setas) ---
   const convenioInput = document.getElementById('convenioInput');
   const convenioResultados = document.getElementById('convenioResultados');
-  const conveniosLista = ['IPE', 'SAUDE BRADESCO', 'SAUDE MAIOR', 'CASSI', 'UNIMED'];
+  // Lista completa de convênios (com a restrição de centro)
+  const conveniosLista = [
+    { nome: 'ACORDO BENEFICENCIA', centro: 'CTSUL' },
+    { nome: 'ACPO', centro: 'CTSUL' },
+    { nome: 'AMIL', centro: null },
+    { nome: 'AMOR SAUDE FATURADO', centro: null },
+    { nome: 'APUFPEL', centro: null },
+    { nome: 'ASSEFAZ', centro: null },
+    { nome: 'ATEND JA', centro: null },
+    { nome: 'BENEFICENCIA PORTUGUESA OUTUBRO ROSA', centro: 'CTSUL' },
+    { nome: 'CABERGS', centro: null },
+    { nome: 'CAIXA FEDERAL RESSONANCIA', centro: 'RSUL' },
+    { nome: 'CAPESAUDE', centro: null },
+    { nome: 'CASEMBRAPA', centro: null },
+    { nome: 'CASSI', centro: null },
+    { nome: 'DESCONTO SAUDE FATURADO', centro: null },
+    { nome: 'DONNA SAUDE', centro: null },
+    { nome: 'FUSEX', centro: null },
+    { nome: 'GEAP', centro: null },
+    { nome: 'INTENSIFICADOR PARTICULAR', centro: null },
+    { nome: 'INTERNADO ACORDO PARTICULAR', centro: null },
+    { nome: 'INTERNADO IPE', centro: null },
+    { nome: 'INTERNADO SAUDE MAIOR', centro: null },
+    { nome: 'INTERNADO SOCIO BENEFICENCIA RAIO X', centro: null },
+    { nome: 'INTERNADO SUS', centro: null },
+    { nome: 'INTERNADO UNIMED', centro: null },
+    { nome: 'IPE', centro: null },
+    { nome: 'IPE FRANQUIA ZERO', centro: null },
+    { nome: 'LABORATORIO POPULAR FATURADO', centro: null },
+    { nome: 'MASTERPLAN', centro: null },
+    { nome: 'MEDISERVICE', centro: null },
+    { nome: 'PA SAUDE MAIOR / SAUDE MAIOR', centro: null },
+    { nome: 'PLANTAO CABERGS', centro: null }, // Removido o til
+    { nome: 'POLICLINICA PELOTENSE FATURADO', centro: null },
+    { nome: 'POLICLINICA REUNIDAS FATURADO', centro: null },
+    { nome: 'POSTAL SAUDE', centro: null },
+    { nome: 'PREF JAGUARAO FAT', centro: null }, // Removido o til
+    { nome: 'PREFEITURA DE ARROIO DO PADRE PREGAO', centro: null }, // Removido o til
+    { nome: 'PREFEITURA DE ARROIO GRANDE FATURADO', centro: null },
+    { nome: 'PREFEITURA DE ARROIO GRANDE PREGAO', centro: null },
+    { nome: 'PREFEITURA DE CANGUCU FATURADO', centro: null },
+    { nome: 'PREFEITURA DE CAPAO DO LEAO FATURADO', centro: null }, // Removidos tils
+    { nome: 'PREFEITURA DE CERRITO FATURADO', centro: null },
+    { nome: 'PREFEITURA DE CHUI FATURADO', centro: null },
+    { nome: 'PREFEITURA DE CRISTAL FATURADO', centro: null },
+    { nome: 'PREFEITURA DE HERVAL FATURADO', centro: null },
+    { nome: 'PREFEITURA DE JAGUARAO FATURADO', centro: null },
+    { nome: 'PREFEITURA DE MORRO REDONDO FATURADO', centro: null },
+    { nome: 'PREFEITURA DE PEDRAS ALTAS FATURADO', centro: null },
+    { nome: 'PREFEITURA DE PEDRAS ALTAS PREGAO', centro: null },
+    { nome: 'PREFEITURA DE PEDRO OSORIO FATURADO', centro: null },
+    { nome: 'PREFEITURA DE PINHEIRO MACHADO FATURADO', centro: null },
+    { nome: 'PREFEITURA DE PIRATINI FATURADO', centro: null },
+    { nome: 'PREFEITURA DE PIRATINI PREGAO', centro: null },
+    { nome: 'PREFEITURA DE SANTA VITORIA FATURADO', centro: null },
+    { nome: 'PREFEITURA DE SANTANA DA BOA VISTA FAT', centro: null },
+    { nome: 'PREFEITURA DE TURUCU FATURADO', centro: null },
+    { nome: 'PREVPEL', centro: null },
+    { nome: 'PREVPEL FRANQUIA ZERO', centro: null },
+    { nome: 'PROVIDA FATURADO', centro: null },
+    { nome: 'SAMEISA', centro: null },
+    { nome: 'SANTA CASA DE SAO LOURENCO FATURADO', centro: null }, // Removida a cedilha
+    { nome: 'SANTANA DA BOA VISTA CREDENCIAMENTO', centro: null },
+    { nome: 'SAUDE BRADESCO', centro: 'CTSUL' },
+    { nome: 'SAUDE MAIOR', centro: null },
+    { nome: 'SAUDE PAS', centro: null },
+    { nome: 'SEGMED FATURADOS', centro: null },
+    { nome: 'SUL AMERICA', centro: null },
+    { nome: 'SUL CLINICA FATURADO', centro: null },
+    { nome: 'SUS', centro: null },
+    { nome: 'SUS BENEF PORT PARTICULAR RESSONANCIA', centro: null },
+    { nome: 'SUS BENF PORT PARTICULAR TOMOGRAFIA', centro: null },
+    { nome: 'SUS INCENTIVO', centro: null },
+    { nome: 'UNIMED', centro: null }
+  ];
   let convenioIndexFocado = -1; // Guarda qual item está selecionado com as setas
 
   // --- Descrição automática: "CONVÊNIO MÊS ANO - " ---
@@ -443,7 +524,7 @@
     convenioInput.value = nome;
     convenioResultados.classList.add('hidden');
     convenioIndexFocado = -1;
-    atualizarDescricaoAuto();   // <-- nova
+    atualizarDescricaoAuto();   
     const centroSelect = document.getElementById('centro');
     if (centroSelect) centroSelect.focus();
   }
@@ -463,7 +544,19 @@
   convenioInput.addEventListener('input', () => {
     convenioIndexFocado = -1;
     if (!convenioInput.value.trim()) atualizarDescricaoAuto();
-    const q = convenioInput.value.trim().toLowerCase();
+    
+    // Pega o nome do centro selecionado
+    const centroSelect = document.getElementById('centro');
+    const centroTexto = centroSelect.options[centroSelect.selectedIndex]?.text.toUpperCase() || '';
+
+    // Se o usuário não escolheu um centro (ou escolheu o placeholder vazio), bloqueia a busca
+    if (!centroTexto || centroTexto.includes('SELECIONE')) {
+      convenioResultados.innerHTML = '';
+      convenioResultados.classList.add('hidden');
+      return;
+    }
+
+    const q = normalizar(convenioInput.value.trim());
     convenioResultados.innerHTML = '';
     
     if (!q) {
@@ -471,18 +564,31 @@
       return;
     }
 
-    const filtrados = conveniosLista.filter(c => c.toLowerCase().includes(q));
+    // Filtra
+    const filtrados = conveniosLista.filter(c => {
+      const matchTexto = normalizar(c.nome).includes(q);
+      if (!matchTexto) return false;
+
+      // Se o convênio não tem restrição, sempre aparece
+      if (!c.centro) return true;
+
+      // Se tem restrição, só aparece se o centro for compatível
+      if (c.centro === 'CTSUL' && centroTexto.includes('CTSUL')) return true;
+      if (c.centro === 'RSUL' && centroTexto.includes('RSUL')) return true;
+
+      return false;
+    });
 
     if (filtrados.length === 0) {
       convenioResultados.classList.add('hidden');
       return;
     }
 
-    filtrados.forEach(nome => {
+    filtrados.forEach(item => {
       const row = document.createElement('div');
       row.className = 'px-4 py-2.5 text-sm sm:text-base cursor-pointer hover:bg-[#F4F7F6]';
-      row.textContent = nome;
-      row.addEventListener('click', () => selecionarConvenio(nome));
+      row.textContent = item.nome;
+      row.addEventListener('click', () => selecionarConvenio(item.nome));
       convenioResultados.appendChild(row);
     });
 
@@ -577,6 +683,7 @@
     const n = parseInt(rateioDivisoes.value, 10);
     rateioLista.innerHTML = '';
     
+    // Pega o valor do centro selecionado lá em cima
     const centroAtual = centroTopo ? centroTopo.value : '';
     const subcentroAtual = subcentroTopo ? subcentroTopo.value : '';
 
@@ -584,12 +691,12 @@
       const wrapper = document.createElement('div');
       wrapper.className = 'rateio-bloco grid grid-cols-1 sm:grid-cols-[1fr_1fr_100px] gap-3 items-end';
       
-      let opcoesCentro = `<option value="">Selecione...</option>`;
+      // Monta as opções do Centro (Só mostra o CTSUL, pois o rateio é bloqueado no RSUL)
+      let opcoesCentro = '';
       if (centroTopo) {
         Array.from(centroTopo.options).forEach(opt => {
-          if (opt.value) {
-            const selected = (i === 0 && opt.value === centroAtual) ? 'selected' : '';
-            opcoesCentro += `<option value="${opt.value}" ${selected}>${opt.text}</option>`;
+          if (opt.value && opt.text.toUpperCase() === 'CTSUL') {
+            opcoesCentro += `<option value="${opt.value}" selected>${opt.text}</option>`;
           }
         });
       }
@@ -597,7 +704,8 @@
       wrapper.innerHTML = `
         <div>
           <label class="block text-xs uppercase tracking-wide text-[#6B7B78] mb-1">Centro</label>
-          <select name="rateio_centro" class="rateio-centro form-select w-full rounded-xl border border-[#CBD5D1] bg-white px-3 py-2 text-sm outline-none focus:border-teal">
+          <!-- Adicionado disabled e as classes de cinza no select do centro -->
+          <select name="rateio_centro" class="rateio-centro form-select w-full rounded-xl border border-[#CBD5D1] bg-[#F4F7F6] text-[#9A9A9A] cursor-not-allowed px-3 py-2 text-sm outline-none" disabled>
             ${opcoesCentro}
           </select>
         </div>
@@ -614,48 +722,42 @@
       `;
       
       const pctInput = wrapper.querySelector('.rateio-pct');
-      const centroSelect = wrapper.querySelector('.rateio-centro');
       const subcentroSelect = wrapper.querySelector('.rateio-subcentro');
 
+      // Listener da Porcentagem
       pctInput.addEventListener('input', () => {
         pctInput.value = pctInput.value.replace(/\D/g, '').slice(0, 3);
         atualizarSomaRateio();
       });
 
-      centroSelect.addEventListener('change', async () => {
+      // Como o Centro já vem fixo como CTSUL, precisamos apenas carregar os subcentros do CTSUL
+      const carregarSubcentrosRateio = async () => {
         subcentroSelect.innerHTML = '<option value="">Carregando...</option>';
         
-        if (centroSelect.value === centroAtual && subcentroTopo && subcentroTopo.options.length > 1) {
+        // Se o subcentro do topo for do CTSUL, podemos clonar (mais rápido)
+        if (centroAtual && subcentroTopo && subcentroTopo.options.length > 1) {
           subcentroSelect.innerHTML = '<option value="">Selecione...</option>';
-          Array.from(subcentroTopo.options).forEach(opt => {
-            if (opt.value) {
-              subcentroSelect.innerHTML += `<option value="${opt.value}">${opt.text}</option>`;
-            }
-          });
-        } else if (centroSelect.value) {
-          try {
-            const response = await fetch(`/financeiro/lancamentos/subcentros/?centro=${centroSelect.value}`);
-            const html = await response.text();
-            subcentroSelect.innerHTML = html;
-            subcentroSelect.querySelectorAll('option').forEach(o => o.disabled = false);
-          } catch (error) {
-            subcentroSelect.innerHTML = '<option value="">Erro ao carregar</option>';
-          }
-        } else {
-          subcentroSelect.innerHTML = '<option value="">Selecione...</option>';
-        }
-      });
-
-      if (i === 0 && centroAtual) {
-        if (subcentroTopo && subcentroTopo.options.length > 1) {
           Array.from(subcentroTopo.options).forEach(opt => {
             if (opt.value) {
               const isSelected = (opt.value === subcentroAtual) ? 'selected' : '';
               subcentroSelect.innerHTML += `<option value="${opt.value}" ${isSelected}>${opt.text}</option>`;
             }
           });
+        } else {
+          // Se não, busca do banco via HTMX
+          try {
+            const response = await fetch(`/financeiro/lancamentos/subcentros/?centro=${centroAtual}`);
+            const html = await response.text();
+            subcentroSelect.innerHTML = html;
+            subcentroSelect.querySelectorAll('option').forEach(o => o.disabled = false);
+          } catch (error) {
+            subcentroSelect.innerHTML = '<option value="">Erro ao carregar</option>';
+          }
         }
-      }
+      };
+
+      // Já roda a busca dos subcentros logo que a linha é criada
+      carregarSubcentrosRateio();
 
       rateioLista.appendChild(wrapper);
     }
@@ -820,5 +922,30 @@
       }
     }
   });
+
+  // --- Lógica para mostrar o Rateio APENAS no CTSUL ---
+  const centroSelect = document.getElementById('centro');
+  const rateioWrapper = rateioCheckbox.closest('div.mt-5'); // Pega a div principal do rateio
+  
+  if (centroSelect && rateioWrapper) {
+    const verificarRateio = () => {
+      const selectedOption = centroSelect.options[centroSelect.selectedIndex];
+      const textoCentro = selectedOption ? selectedOption.text.trim().toUpperCase() : '';
+
+      if (textoCentro === 'CTSUL') {
+        rateioWrapper.classList.remove('hidden'); // Mostra
+      } else {
+        rateioWrapper.classList.add('hidden'); // Esconde se for vazio ou RSUL
+        rateioCheckbox.checked = false; // Desmarca
+        document.getElementById('rateioConfig').classList.add('hidden'); // Esconde os campos
+      }
+    };
+
+    // Roda quando o centro muda
+    centroSelect.addEventListener('change', verificarRateio);
+    
+    // Roda assim que a página carrega para garantir que comece escondido
+    verificarRateio();
+  }
 </script>
 {% endblock %}

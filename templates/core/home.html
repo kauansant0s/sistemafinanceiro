@@ -220,44 +220,6 @@
             + Adicionar Tarefa Automatizada
           </button>
         </div>
-
-        <!-- Tela de Automação (Inicia escondida) -->
-        <div id="telaAutomacao" class="hidden p-5 flex flex-col gap-4 overflow-y-auto">
-          <button id="btnVoltarMenu" class="text-sm text-[#6B7B78] hover:text-ink self-start flex items-center gap-1 mb-2">
-            &larr; Voltar
-          </button>
-
-          <div>
-            <label class="block text-sm mb-1">Nome da Tarefa</label>
-            <input type="text" id="cfgNome" placeholder="Ex: Faturar CASEMBRAPA..." class="w-full rounded-lg border border-[#CBD5D1] px-3 py-2 text-sm uppercase">
-          </div>
-
-          <div>
-            <label class="block text-sm mb-1">Tipo de Repetição</label>
-            <select id="cfgQuando" class="w-full rounded-lg border border-[#CBD5D1] px-3 py-2 text-sm">
-              <option value="primeiros_dias_uteis">Nos primeiros dias úteis</option>
-              <option value="ate_dia">Todo dia fixo do mês</option>
-            </select>
-          </div>
-          
-          <div id="cfgUteisWrap">
-            <label class="block text-sm mb-1">Quantos dias úteis?</label>
-            <input type="number" id="cfgDiasUteis" min="1" max="22" placeholder="Ex: 2" class="w-full rounded-lg border border-[#CBD5D1] px-3 py-2 text-sm">
-          </div>
-          
-          <div id="cfgDiaWrap" class="hidden">
-            <label class="block text-sm mb-1">Qual dia do mês?</label>
-            <input type="number" id="cfgDia" min="1" max="31" placeholder="Ex: 10" class="w-full rounded-lg border border-[#CBD5D1] px-3 py-2 text-sm">
-          </div>
-          
-          <button type="button" id="btnAdicionarAutomacao" class="w-full bg-teal text-white rounded-xl py-2.5 text-sm hover:brightness-95 transition-all mt-2">Salvar Automação</button>
-
-          <hr class="border-[#E3EAE8] my-2">
-
-          <ul id="listaAutomacoes" class="flex flex-col gap-2">
-            <!-- Preenchido via JS -->
-          </ul>
-        </div>
       </div>
     </div>
 
@@ -283,8 +245,6 @@
   // --- URLs do Backend ---
   const URL_API_TAREFAS = "{% url 'core:api_tarefas_calendario' %}";
   const URL_SALVAR_TAREFA = "{% url 'core:salvar_tarefa_calendario' %}";
-  const URL_API_REGRAS = "{% url 'core:api_regras_calendario' %}";
-  const URL_SALVAR_REGRA = "{% url 'core:salvar_regra_calendario' %}";
   const CSRF_TOKEN = "{{ csrf_token }}";
 
   let tasksStore = {};
@@ -434,138 +394,27 @@
   if (btnConfig && modalConfig) {
     const btnFecharConfig = document.getElementById('btnFecharConfig');
     const menuConfig = document.getElementById('menuConfig');
-    const telaAutomacao = document.getElementById('telaAutomacao');
-    const modalTitulo = document.getElementById('modalTitulo');
     const toggleFinalizadas = document.getElementById('toggleFinalizadas');
 
     btnConfig.addEventListener('click', () => {
       modalConfig.classList.remove('hidden');
       menuConfig.classList.remove('hidden');
-      telaAutomacao.classList.add('hidden');
-      modalTitulo.textContent = 'Configurações';
     });
 
     btnFecharConfig.addEventListener('click', () => modalConfig.classList.add('hidden'));
 
-    document.getElementById('btnMenuAutomacao').addEventListener('click', () => {
-      menuConfig.classList.add('hidden');
-      telaAutomacao.classList.remove('hidden');
-      modalTitulo.textContent = 'Automações';
-      if (typeof carregarRegras === 'function') carregarRegras();
-    });
-
-    document.getElementById('btnVoltarMenu').addEventListener('click', () => {
-      telaAutomacao.classList.add('hidden');
-      menuConfig.classList.remove('hidden');
-      modalTitulo.textContent = 'Configurações';
-    });
-
-    // Imprimir
-    document.getElementById('btnMenuImprimir').addEventListener('click', () => {
-      modalConfig.classList.add('hidden'); // Fecha o modal
-      setTimeout(() => {
-        window.print(); // Abre a impressão
-      }, 150); // 150 milissegundos de espera
-    });
+    document.getElementById('btnMenuImprimir').addEventListener('click', () => window.print());
 
     toggleFinalizadas.addEventListener('change', () => {
       showCompleted = toggleFinalizadas.checked;
       renderCalendar(calYear, calMonth);
     });
-  }
 
-  // --- Lógica Visual da Automação ---
-  const cfgQuando = document.getElementById('cfgQuando');
-  if (cfgQuando) {
-    cfgQuando.addEventListener('change', () => {
-      if (cfgQuando.value === 'ate_dia') {
-        document.getElementById('cfgDiaWrap').classList.remove('hidden');
-        document.getElementById('cfgUteisWrap').classList.add('hidden');
-      } else {
-        document.getElementById('cfgDiaWrap').classList.add('hidden');
-        document.getElementById('cfgUteisWrap').classList.remove('hidden');
-      }
+    // O botão de automação não faz nada por enquanto
+    document.getElementById('btnMenuAutomacao').addEventListener('click', () => {
+      alert("Funcionalidade de automação em breve!");
     });
   }
-
-  // --- Funções de Comunicação com o Banco (Regras) ---
-  async function carregarRegras() {
-    try {
-      const resp = await fetch(URL_API_REGRAS);
-      const regras = await resp.json();
-      
-      const listaAutomacoes = document.getElementById('listaAutomacoes');
-      listaAutomacoes.innerHTML = '';
-      
-      if (regras.length === 0) {
-        listaAutomacoes.innerHTML = '<li class="text-sm text-[#6B7B78] text-center py-4">Nenhuma automação cadastrada.</li>';
-        return;
-      }
-
-      regras.forEach(r => {
-        const li = document.createElement('li');
-        li.className = 'flex justify-between items-center bg-white border border-[#E3EAE8] p-3 rounded-lg text-sm';
-        const texto = r.tipo === 'ate_dia' ? `Todo dia ${r.dias} do mês` : `Nos ${r.dias} primeiros dias úteis`;
-        
-        li.innerHTML = `
-          <div>
-            <strong class="block text-ink">${r.titulo}</strong>
-            <span class="text-xs text-[#6B7B78]">${texto}</span>
-          </div>
-          <button type="button" class="text-[#B91C1C] hover:opacity-70" onclick="excluirRegra(${r.id})">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 6L18 18M6 18L18 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-          </button>
-        `;
-        listaAutomacoes.appendChild(li);
-      });
-    } catch (error) {
-      console.error("Erro ao carregar regras:", error);
-    }
-  }
-
-  document.getElementById('btnAdicionarAutomacao').addEventListener('click', async () => {
-    const titulo = document.getElementById('cfgNome').value.trim();
-    const tipo = cfgQuando.value;
-    let dias = 0;
-    
-    if (!titulo) return alert("Digite o nome da tarefa.");
-
-    if (tipo === 'ate_dia') {
-      dias = parseInt(document.getElementById('cfgDia').value);
-      if (!dias || dias < 1 || dias > 31) return alert("Digite um dia válido (1 a 31).");
-    } else {
-      dias = parseInt(document.getElementById('cfgDiasUteis').value);
-      if (!dias || dias < 1 || dias > 22) return alert("Digite uma quantidade válida de dias úteis (1 a 22).");
-    }
-
-    try {
-      await fetch(URL_SALVAR_REGRA, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
-        body: JSON.stringify({ titulo, tipo, dias })
-      });
-      
-      document.getElementById('cfgNome').value = '';
-      document.getElementById('cfgDia').value = '';
-      document.getElementById('cfgDiasUteis').value = '';
-      carregarRegras();
-    } catch (error) {
-      console.error("Erro ao salvar regra:", error);
-    }
-  });
-
-  window.excluirRegra = async function(id) {
-    if (!confirm("Excluir esta automação?")) return;
-    try {
-      await fetch(`/core/regras/excluir/${id}/`, {
-        method: 'POST',
-        headers: { 'X-CSRFToken': CSRF_TOKEN }
-      });
-      carregarRegras();
-    } catch (error) {
-      console.error("Erro ao excluir regra:", error);
-    }
-  };
 
   function startEditingTask(inner, taskLine, key, index) {
     const task = tasksStore[key][index];
